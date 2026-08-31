@@ -144,18 +144,27 @@ with st.sidebar:
 st.markdown('<div class="main-header">⚡ AI Cold Outreach Engine & Email Automation</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">Générateur intelligent d\'emails de prospection pour stage PFE avec validation de délivrabilité Gmail certifiée (RFC 3464).</div>', unsafe_allow_html=True)
 
-# Top Metrics Row
-m1, m2, m3, m4 = st.columns(4)
-with m1:
-    st.metric("👥 Total Contacts", f"{total_contacts}", help="Total des contacts importés")
-with m2:
-    st.metric("🚀 Envoyés avec Succès", f"{sent_count}", help="Candidatures bien reçues sans bounce")
-with m3:
-    st.metric("❌ Address Not Found", f"{bounced_count}", help="Emails invalides certifiés par Mailer-Daemon (Bannis)")
-with m4:
-    st.metric("⏳ Restants à Envoyer", f"{approved_waiting_count}", help="Contacts qualifiés prêts à l'envoi")
-
-st.write("")
+# Top Metrics Row (Robust HTML/CSS Cards)
+st.markdown(f"""
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    <div style="background: white; padding: 16px 20px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="font-size: 0.82rem; color: #64748b; font-weight: 600; text-transform: uppercase;">👥 Total Contacts</div>
+        <div style="font-size: 1.85rem; font-weight: 800; color: #0f172a; margin-top: 4px;">{total_contacts}</div>
+    </div>
+    <div style="background: white; padding: 16px 20px; border-radius: 12px; border: 1px solid #bbf7d0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="font-size: 0.82rem; color: #166534; font-weight: 600; text-transform: uppercase;">🚀 Envoyés avec Succès</div>
+        <div style="font-size: 1.85rem; font-weight: 800; color: #16a34a; margin-top: 4px;">{sent_count}</div>
+    </div>
+    <div style="background: white; padding: 16px 20px; border-radius: 12px; border: 1px solid #fecaca; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="font-size: 0.82rem; color: #991b1b; font-weight: 600; text-transform: uppercase;">❌ Address Not Found</div>
+        <div style="font-size: 1.85rem; font-weight: 800; color: #dc2626; margin-top: 4px;">{bounced_count}</div>
+    </div>
+    <div style="background: white; padding: 16px 20px; border-radius: 12px; border: 1px solid #fed7aa; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="font-size: 0.82rem; color: #9a3412; font-weight: 600; text-transform: uppercase;">⏳ Restants à Envoyer</div>
+        <div style="font-size: 1.85rem; font-weight: 800; color: #ea580c; margin-top: 4px;">{approved_waiting_count}</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # Navigation Tabs
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
