@@ -85,6 +85,26 @@ def init_db():
             )
         """)
         
+        # Recruiter responses table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS recruiter_responses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                contact_id INTEGER,
+                sender_email TEXT NOT NULL,
+                sender_name TEXT,
+                company TEXT,
+                subject TEXT,
+                body_text TEXT,
+                received_at REAL NOT NULL,
+                intent_category TEXT DEFAULT 'general',
+                sentiment_label TEXT DEFAULT 'neutral',
+                ai_summary TEXT,
+                ai_suggested_reply TEXT,
+                is_read INTEGER DEFAULT 0,
+                FOREIGN KEY(contact_id) REFERENCES contacts(id)
+            )
+        """)
+        
         conn.commit()
 
 def save_profile(profile: CandidateProfile):
@@ -295,3 +315,42 @@ def trigger_waterfall_retry_bounced() -> Dict[str, Any]:
         "count": switched_count,
         "switched": switched_details
     }
+
+def save_recruiter_response(data: Dict[str, Any]) -> int:
+    """Inserts a new recruiter response into the database."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO recruiter_responses (
+                contact_id, sender_email, sender_name, company, subject,
+                body_text, received_at, intent_category, sentiment_label,
+                ai_summary, ai_suggested_reply, is_read
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            data.get("contact_id"),
+            data["sender_email"].lower().strip(),
+            data.get("sender_name", ""),
+            data.get("company", ""),
+            data.get("subject", "Sans objet"),
+            data.get("body_text", ""),
+            data.get("received_at", time.time()),
+            data.get("intent_category", "general"),
+            data.get("sentiment_label", "neutral"),
+            data.get("ai_summary", ""),
+            data.get("ai_suggested_reply", ""),
+            data.get("is_read", 0)
+        ))
+        conn.commit()
+        return cursor.lastrowid
+
+def get_all_recruiter_responses() -> List[Dict[str, Any]]:
+    """Retrieves all recruiter responses ordered by date descending."""
+    with get_db_connection() as conn:
+        rows = conn.execute("SELECT * FROM recruiter_responses ORDER BY received_at DESC").fetchall()
+        return [dict(r) for r in rows]
+
+def mark_response_read(resp_id: int):
+    """Marks a recruiter response as read."""
+    with get_db_connection() as conn:
+        conn.execute("UPDATE recruiter_responses SET is_read = 1 WHERE id = ?", (resp_id,))
+        conn.commit()

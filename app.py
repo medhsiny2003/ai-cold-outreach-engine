@@ -21,7 +21,8 @@ from config import (
 from services.storage_service import (
     init_db, load_profile, save_profile, load_smtp_settings, save_smtp_settings,
     load_llm_settings, save_llm_settings, get_all_contacts, save_or_update_contact,
-    save_contacts_bulk, approve_all_contacts, clear_all_contacts, log_sent_email, get_all_sent_logs
+    save_contacts_bulk, approve_all_contacts, clear_all_contacts, log_sent_email, get_all_sent_logs,
+    get_all_recruiter_responses, mark_response_read
 )
 from services.contact_manager import parse_contacts_file, generate_sample_csv
 from services.prompt_builder import determine_language
@@ -32,9 +33,11 @@ from services.email_sender import (
 )
 from services.gmail_cleaner import clean_gmail_bounces_and_sync_db, sync_sent_and_bounced_with_gmail
 from services.analytics_service import compute_company_analytics, send_quality_report_email
+from services.response_tracker import scan_incoming_recruiter_replies, BackgroundSyncDaemon
 
-# Initialize DB schema
+# Initialize DB schema & Start Background Auto-Sync Daemon (45s non-blocking loop)
 init_db()
+BackgroundSyncDaemon.start(interval_seconds=45)
 
 # Custom CSS for modern styling
 st.markdown("""
@@ -167,12 +170,13 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # Navigation Tabs
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "👤 Mon Profil & CV",
     "👥 Contacts (CSV / Excel)",
     "🤖 Génération IA",
     "✍️ Revue & Édition",
     "🚀 Centre d'Envoi",
+    "💬 Réponses Recruteurs & IA",
     "⚙️ Paramètres & Gmail"
 ])
 
@@ -903,9 +907,124 @@ mohammedhsiny2@gmail.com"""
         st.caption("Aucun historique d'envoi enregistré pour le moment.")
 
 # -------------------------------------------------------------
-# TAB 6: Paramètres & Gmail
+# TAB 6: Réponses Recruteurs & IA
 # -------------------------------------------------------------
 with tab6:
+    st.header("💬 Réponses Recruteurs & Résumés Intelligents par IA")
+    st.markdown("""
+    Cette boîte de réception intelligente surveille votre compte Gmail en tâche de fond, extrait les réponses des recruteurs, 
+    analyse leur intention (proposition d'entretien, demande de précisions, refus) et vous génère automatiquement un résumé exécutif ainsi qu'une ébauche de réponse adaptée.
+    """)
+    
+    col_r_top1, col_r_top2 = st.columns([3, 1])
+    with col_r_top1:
+        st.caption(f"⚡ **Daemon Auto-Sync :** {BackgroundSyncDaemon.last_status_message} *(synchronisation automatique non-bloquante toutes les 45s)*")
+    with col_r_top2:
+        if st.button("🔄 Actualiser les Réponses Gmail", type="primary", use_container_width=True):
+            with st.spinner("Analyse approfondie de votre boîte de réception..."):
+                scan_res = scan_incoming_recruiter_replies(smtp, profile)
+                if scan_res["success"]:
+                    st.success(scan_res["message"])
+                else:
+                    st.error(scan_res["message"])
+                time.sleep(1)
+                st.rerun()
+
+    responses = get_all_recruiter_responses()
+    
+    # KPI Metrics
+    total_resp = len(responses)
+    interview_count = sum(1 for r in responses if r.get("intent_category") == "interview_offer")
+    info_count = sum(1 for r in responses if r.get("intent_category") == "request_info")
+    rejection_count = sum(1 for r in responses if r.get("intent_category") == "rejection")
+    unread_count = sum(1 for r in responses if not r.get("is_read"))
+
+    st.markdown(f"""
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;">
+        <div style="background: white; padding: 12px 16px; border-radius: 10px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 0.8rem; color: #64748b; font-weight: 600; text-transform: uppercase;">💬 Total Réponses</div>
+            <div style="font-size: 1.6rem; font-weight: 800; color: #0f172a;">{total_resp}</div>
+        </div>
+        <div style="background: white; padding: 12px 16px; border-radius: 10px; border: 1px solid #bbf7d0;">
+            <div style="font-size: 0.8rem; color: #166534; font-weight: 600; text-transform: uppercase;">🎯 Entretiens Proposés</div>
+            <div style="font-size: 1.6rem; font-weight: 800; color: #16a34a;">{interview_count}</div>
+        </div>
+        <div style="background: white; padding: 12px 16px; border-radius: 10px; border: 1px solid #fed7aa;">
+            <div style="font-size: 0.8rem; color: #9a3412; font-weight: 600; text-transform: uppercase;">🟡 Demandes d'Infos</div>
+            <div style="font-size: 1.6rem; font-weight: 800; color: #ea580c;">{info_count}</div>
+        </div>
+        <div style="background: white; padding: 12px 16px; border-radius: 10px; border: 1px solid #fecaca;">
+            <div style="font-size: 0.8rem; color: #991b1b; font-weight: 600; text-transform: uppercase;">🔴 Refus Politiques</div>
+            <div style="font-size: 1.6rem; font-weight: 800; color: #dc2626;">{rejection_count}</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if not responses:
+        st.info("ℹ️ Aucune réponse de recruteur enregistrée pour l'instant. Cliquez sur **'🔄 Actualiser les Réponses Gmail'** ou laissez le daemon automatique scanner votre boîte.")
+    else:
+        filter_opt = st.radio(
+            "Filtrer par type de réponse",
+            ["Toutes les réponses", "🎯 Entretiens Proposés", "🟡 Demandes d'Infos", "🔴 Refus Politisés", "⚪ Non lus uniquement"],
+            horizontal=True
+        )
+        
+        filtered = responses
+        if filter_opt == "🎯 Entretiens Proposés":
+            filtered = [r for r in responses if r.get("intent_category") == "interview_offer"]
+        elif filter_opt == "🟡 Demandes d'Infos":
+            filtered = [r for r in responses if r.get("intent_category") == "request_info"]
+        elif filter_opt == "🔴 Refus Politisés":
+            filtered = [r for r in responses if r.get("intent_category") == "rejection"]
+        elif filter_opt == "⚪ Non lus uniquement":
+            filtered = [r for r in responses if not r.get("is_read")]
+            
+        for r in filtered:
+            intent_meta = {
+                "interview_offer": ("🎯 ENTRETIEN PROPOSÉ", "#dcfce7", "#166534", "#86efac"),
+                "request_info": ("🟡 DEMANDE DE PRÉCISIONS", "#ffedd5", "#9a3412", "#fdba74"),
+                "rejection": ("🔴 REFUS POLI", "#fee2e2", "#991b1b", "#fca5a5"),
+                "out_of_office": ("⚪ ABSENCE DU BUREAU", "#f1f5f9", "#475569", "#cbd5e1"),
+                "general": ("💬 RÉPONSE GÉNÉRALE", "#e0f2fe", "#0369a1", "#7dd3fc")
+            }.get(r.get("intent_category", "general"), ("💬 RÉPONSE", "#f8fafc", "#334155", "#cbd5e1"))
+            
+            with st.container():
+                st.markdown(f"""
+                <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px 22px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div>
+                            <span style="font-size: 1.1rem; font-weight: 800; color: #0f172a;">{r.get('sender_name') or r['sender_email']}</span>
+                            <span style="color: #64748b; font-size: 0.9rem; margin-left: 8px;">— <b>{r.get('company') or 'Société'}</b> ({r['sender_email']})</span>
+                        </div>
+                        <span style="background: {intent_meta[1]}; color: {intent_meta[2]}; border: 1px solid {intent_meta[3]}; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">
+                            {intent_meta[0]}
+                        </span>
+                    </div>
+                    <div style="font-weight: 600; color: #1e293b; font-size: 0.95rem; margin-bottom: 8px;">
+                        📌 Sujet : <i>{r.get('subject', 'Sans objet')}</i>
+                    </div>
+                    <div style="background: #f8fafc; border-left: 4px solid #2563eb; padding: 10px 14px; border-radius: 4px; margin-bottom: 12px;">
+                        <div style="font-size: 0.82rem; font-weight: 700; color: #2563eb; text-transform: uppercase; margin-bottom: 4px;">🤖 Résumé Exécutif IA :</div>
+                        <div style="font-size: 0.88rem; color: #334155;">{r.get('ai_summary', 'Résumé en cours...')}</div>
+                    </div>
+                    <div style="background: #fdf4ff; border-left: 4px solid #a855f7; padding: 10px 14px; border-radius: 4px; margin-bottom: 12px;">
+                        <div style="font-size: 0.82rem; font-weight: 700; color: #a855f7; text-transform: uppercase; margin-bottom: 4px;">💡 Proposition de Réponse IA pour Mohammed :</div>
+                        <div style="font-size: 0.88rem; color: #581c87; white-space: pre-line;">{r.get('ai_suggested_reply', '')}</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                with st.expander(f"📜 Voir l'Email Original Complet de {r.get('sender_name') or r['sender_email']}"):
+                    st.text(r.get("body_text", ""))
+                    if not r.get("is_read"):
+                        if st.button("Marquer comme lu", key=f"mark_read_{r['id']}"):
+                            mark_response_read(r["id"])
+                            st.rerun()
+
+# -------------------------------------------------------------
+# TAB 7: Paramètres & Gmail
+# -------------------------------------------------------------
+with tab7:
     st.header("⚙️ Configuration Gmail & Clés API")
     
     col_cfg1, col_cfg2 = st.columns(2)
