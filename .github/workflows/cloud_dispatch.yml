@@ -1,0 +1,49 @@
+name: 🚀 Cloud Email Outreach Engine (Mohammed HSINY)
+
+on:
+  workflow_dispatch:
+    inputs:
+      batch_limit:
+        description: "Nombre max de candidatures à envoyer (ex: 50, 100, ou 383 pour tout)"
+        required: false
+        default: "383"
+  schedule:
+    # Trigger automatically at 08:30 AM (UTC) from Monday to Friday
+    - cron: "30 8 * * 1-5"
+
+jobs:
+  dispatch_emails:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: 📦 Install Python Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 🚀 Run Headless Cloud Outreach Dispatch
+        env:
+          GMAIL_SENDER_EMAIL: ${{ secrets.GMAIL_SENDER_EMAIL || 'mohammedhsiny2@gmail.com' }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD || 'qawi kviz qjqu hwgb' }}
+          BATCH_LIMIT: ${{ github.event.inputs.batch_limit || '383' }}
+        run: |
+          python scripts/dispatch_all_continuous_headless.py
+
+      - name: 💾 Commit & Push Updated Database & Logs
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/outreach.db
+          git commit -m "Auto: Update contacts database after cloud email dispatch [skip ci]" || echo "No database changes to commit"
+          git push origin main || echo "Push skipped or up-to-date"
