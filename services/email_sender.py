@@ -16,7 +16,10 @@ from config import BASE_DIR, SMTPSettings, CandidateProfile
 # Force IPv4 resolution to eliminate [Errno 101] Network is unreachable in cloud containers
 _orig_getaddrinfo = socket.getaddrinfo
 def _force_ipv4_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
-    return _orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+    try:
+        return _orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+    except Exception:
+        return _orig_getaddrinfo(host, port, family, type, proto, flags)
 
 socket.getaddrinfo = _force_ipv4_getaddrinfo
 
