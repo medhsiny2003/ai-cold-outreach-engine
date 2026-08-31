@@ -66,6 +66,19 @@ except ImportError:
         def stop(cls):
             pass
 
+try:
+    from services.background_sender import BackgroundDispatcher
+except ImportError:
+    class BackgroundDispatcher:
+        @classmethod
+        def is_running(cls) -> bool: return False
+        @classmethod
+        def get_status(cls) -> dict: return {"status": "IDLE"}
+        @classmethod
+        def start(cls, **kwargs) -> bool: return False
+        @classmethod
+        def stop(cls): pass
+
 # Initialize DB schema & Start Background Auto-Sync Daemon (45s non-blocking loop)
 init_db()
 BackgroundSyncDaemon.start(interval_seconds=45)
@@ -757,139 +770,88 @@ mohammedhsiny2@gmail.com"""
             else:
                 st.error(sync_res["message"])
 
-    if not approved_contacts:
-        if len(sent_contacts) > 0:
-            st.success(f"🎉 Félicitations ! Tous vos contacts ont déjà reçu leur candidature ({len(sent_contacts)} envoyés au total).")
-        else:
-            st.info("Aucun email n'a le statut 'Approuvé'. Veuillez valider les emails dans l'onglet 'Revue & Édition'.")
+    # ---------------------------------------------------------
+    # MOTEUR AUTONOME EN ARRIÈRE-PLAN (CONTINUE MÊME NAVIGATEUR FERMÉ)
+    # ---------------------------------------------------------
+    dispatch_state = BackgroundDispatcher.get_status()
+    is_active = BackgroundDispatcher.is_running()
+
+    if is_active:
+        st.markdown(f"""
+        <div style="background: #f0fdf4; border: 2px solid #22c55e; border-radius: 12px; padding: 20px 24px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(34, 197, 94, 0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 1.25rem; font-weight: 800; color: #166534;">🟢 ENVOI AUTONOME ACTIF EN ARRIÈRE-PLAN</span>
+                <span style="background: #dcfce7; color: #15803d; border: 1px solid #86efac; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;">En direct</span>
+            </div>
+            <p style="color: #166534; margin: 10px 0 8px 0; font-size: 0.95rem;">
+                💡 <b>Le serveur envoie vos emails en continu en tâche de fond.</b> Vous pouvez <u>fermer votre navigateur</u>, changer d'application ou éteindre votre écran en toute tranquillité : l'envoi ne s'arrêtera pas tant qu'il n'a pas terminé ou reçu votre ordre d'arrêt.
+            </p>
+            <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px;">
+                📊 Progression : <b>{dispatch_state.get('sent_count', 0)} / {dispatch_state.get('total_target', 0)}</b> emails expédiés
+            </div>
+            <div style="color: #475569; font-size: 0.9rem; font-style: italic;">
+                📡 Statut actuel : {dispatch_state.get('last_log', 'En cours...')}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        target_tot = max(dispatch_state.get('total_target', 1), 1)
+        curr_s = dispatch_state.get('sent_count', 0)
+        st.progress(min(curr_s / target_tot, 1.0))
+
+        col_stp1, col_stp2 = st.columns([2, 1])
+        with col_stp1:
+            if st.button("🔄 Actualiser le Suivi en Direct", type="primary", use_container_width=True):
+                st.rerun()
+        with col_stp2:
+            if st.button("⏹️ Arrêter l'Envoi en Arrière-Plan", type="secondary", use_container_width=True):
+                BackgroundDispatcher.stop()
+                st.warning("⏹️ Ordre d'arrêt transmis au serveur.")
+                time.sleep(1)
+                st.rerun()
     else:
-        st.markdown(f"**📋 Liste des {len(approved_contacts)} candidatures prêtes à partir en continu :**")
-        st.dataframe(pd.DataFrame(approved_contacts)[["name", "email", "company", "role", "subject"]], use_container_width=True)
-        
-        # Mode Selection: Immédiat vs Programmé
-        send_mode = st.radio(
-            "Mode d'expédition :",
-            ["🚀 Envoi Immédiat en Continu", "⏰ Programmer un Envoi Différé (Date & Heure)"],
-            horizontal=True
-        )
-        
-        should_start_sending = False
-        
-        if "Immédiat" in send_mode:
-            btn_launch = st.button(
-                f"🚀 LANCER L'ENVOI IMMÉDIAT POUR LES {len(approved_contacts)} CONTACTS RESTANTS",
+        if not approved_contacts:
+            if len(sent_contacts) > 0:
+                st.success(f"🎉 Félicitations ! Tous vos contacts ont déjà reçu leur candidature ({len(sent_contacts)} envoyés au total).")
+            else:
+                st.info("Aucun email n'a le statut 'Approuvé'. Veuillez valider les emails dans l'onglet 'Revue & Édition'.")
+        else:
+            st.markdown(f"**📋 Liste des {len(approved_contacts)} candidatures prêtes à être envoyées en tâche de fond :**")
+            st.dataframe(pd.DataFrame(approved_contacts)[["name", "email", "company", "role", "subject"]], use_container_width=True)
+
+            col_p1, col_p2, col_p3 = st.columns(3)
+            with col_p1:
+                batch_limit = st.number_input("Limite du lot d'envoi", min_value=1, max_value=len(approved_contacts), value=min(len(approved_contacts), 50))
+            with col_p2:
+                delay_min = st.slider("Délai aléatoire minimum (sec)", min_value=10, max_value=60, value=35)
+            with col_p3:
+                delay_max = st.slider("Délai aléatoire maximum (sec)", min_value=30, max_value=120, value=65)
+
+            st.markdown("""
+            > 🛡️ **Garantie Fonctionnement Continu :** Ce moteur démarre un processus de fond sur le serveur. Même si vous fermez cette fenêtre, l'envoi continuera automatiquement jusqu'à épuisement du lot configuré.
+            """)
+
+            btn_start_bg = st.button(
+                f"🚀 LANCER L'ENVOI AUTONOME EN ARRIÈRE-PLAN ({batch_limit} CONTACTS)",
                 type="primary",
                 use_container_width=True,
-                help="Envoie automatiquement tous les emails restants les uns après les autres sans interruption"
+                help="Démarre l'envoi en tâche de fond. Vous pouvez fermer votre navigateur."
             )
-            if btn_launch:
-                should_start_sending = True
-        else:
-            col_sc1, col_sc2 = st.columns(2)
-            with col_sc1:
-                target_date = st.date_input("Date de lancement souhaitée", value=datetime.now().date())
-            with col_sc2:
-                target_time = st.time_input("Heure de lancement (ex: 08:30 au début des heures de bureau)", value=datetime.strptime("08:30", "%H:%M").time())
-                
-            scheduled_dt = datetime.combine(target_date, target_time)
-            now_dt = datetime.now()
-            
-            if scheduled_dt <= now_dt:
-                st.warning("⚠️ L'heure programmée est déjà passée. Veuillez choisir un créneau futur.")
-            else:
-                diff_seconds = int((scheduled_dt - now_dt).total_seconds())
-                hours, remainder = divmod(diff_seconds, 3600)
-                minutes, seconds = divmod(remainder, 60)
-                st.info(f"⏳ **Envoi programmé le {scheduled_dt.strftime('%d/%m/%Y à %H:%M')}** (dans environ `{hours}h {minutes}min`).")
-                
-                if st.button("⏰ Activer le Programmateur Automatique", type="primary", use_container_width=True):
-                    countdown_placeholder = st.empty()
-                    for remaining in range(diff_seconds, 0, -1):
-                        h, rem = divmod(remaining, 3600)
-                        m, s = divmod(rem, 60)
-                        countdown_placeholder.markdown(f"⏱️ **Compte à rebours avant expédition :** `{h:02d}h {m:02d}min {s:02d}s` restant...")
-                        time.sleep(1)
-                    countdown_placeholder.success("⏰ Heure programmée atteinte ! Lancement de l'expédition...")
-                    should_start_sending = True
-            
-        if should_start_sending:
-            if not smtp.app_password:
-                st.error("Mot de passe d'application Gmail manquant. Rendez-vous dans l'onglet Paramètres.")
-            else:
-                progress_bar = st.progress(0)
-                status_text = st.empty()
-                live_stats_box = st.empty()
-                
-                success_count = 0
-                fail_count = 0
-                total_to_send = len(approved_contacts)
-                
-                for idx, item in enumerate(approved_contacts):
-                    status_text.info(f"📤 Envoi en cours ({idx+1}/{total_to_send}) à **{item.get('name') or item['email']}** — *{item.get('company', 'N/A')}*...")
-                    
-                    lang = item.get("language", "fr")
-                    selected_cv = str(cv_fr_file) if (lang == "fr" and cv_fr_file.is_file()) else str(cv_en_file if cv_en_file.is_file() else cv_fr_file)
-                    
-                    att_list = []
-                    if Path(selected_cv).is_file():
-                        att_list.append(selected_cv)
-                    if portfolio_pdf_file.is_file():
-                        att_list.append(str(portfolio_pdf_file))
-                        
-                    res = send_single_email(
-                        settings=smtp,
-                        recipient_email=item["email"],
-                        subject=item["subject"],
-                        body_text=item["body"],
-                        attachment_paths=att_list,
-                        profile=profile,
-                        language=lang
+            if btn_start_bg:
+                if not smtp.app_password:
+                    st.error("Mot de passe d'application Gmail manquant. Rendez-vous dans l'onglet Paramètres.")
+                else:
+                    started = BackgroundDispatcher.start(
+                        batch_limit=int(batch_limit),
+                        min_delay=int(delay_min),
+                        max_delay=int(delay_max)
                     )
-                    
-                    if res.success:
-                        item["status"] = "sent"
-                        save_or_update_contact(item)
-                        log_sent_email(item["email"], item["subject"], item["body"], "SUCCESS")
-                        success_count += 1
+                    if started:
+                        st.success("🚀 Envoi autonome démarré en tâche de fond avec succès ! Vous pouvez fermer votre navigateur.")
+                        time.sleep(1)
+                        st.rerun()
                     else:
-                        item["status"] = "failed"
-                        save_or_update_contact(item)
-                        log_sent_email(item["email"], item["subject"], item["body"], "FAILED", res.message)
-                        fail_count += 1
-                        st.error(f"❌ Échec pour **{item.get('name') or item['email']}** (`{item['email']}`) : {res.message}")
-                        if "550" in str(res.message) or "limit" in str(res.message).lower():
-                            st.warning("⚠️ **Quota Journalier Gmail Atteint** : Google applique une limite de 500 emails par 24h glissantes.")
-                        elif "535" in str(res.message) or "password" in str(res.message).lower() or "auth" in str(res.message).lower():
-                            st.warning("⚠️ **Authentification Gmail** : Vérifiez votre mot de passe d'application 16 lettres dans l'onglet 'Paramètres & Gmail'.")
-                        
-                    progress_bar.progress((idx + 1) / total_to_send)
-                    
-                    cumul_sent = len(sent_contacts) + success_count
-                    cumul_bounced = len(bounced_contacts) + fail_count
-                    cumul_proc = cumul_sent + cumul_bounced
-                    cumul_rate = (cumul_sent / cumul_proc * 100) if cumul_proc > 0 else 100.0
-                    
-                    live_stats_box.markdown(f"""
-                    <div style="background: #ffffff; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 6px;">
-                        <div style="font-size: 0.83rem; color: #475569; margin-bottom: 4px;">
-                            ⚡ <b>Session en Direct :</b> 🟢 <code>{success_count}</code> réussis | 🔴 <code>{fail_count}</code> échecs | ⏳ <code>{total_to_send - (idx + 1)}</code> restants dans ce lot
-                        </div>
-                        <div style="font-size: 0.85rem; color: #0f172a; font-weight: 700;">
-                            🌐 <b>Cumul Permanent (Toujours) :</b> 🟢 <span style="color:#16a34a;">{cumul_sent} délivrés</span> | 🔴 <span style="color:#dc2626;">{cumul_bounced} rejetés</span> | 🎯 Taux Global : <span style="color:#7c3aed;">{cumul_rate:.1f}%</span>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Inter-email jitter pause
-                    if idx < total_to_send - 1:
-                        sleep_time = random.uniform(smtp.min_delay_seconds, smtp.max_delay_seconds)
-                        status_text.caption(f"⚡ Envoi continu en cours : pause de sécurité de {sleep_time:.1f}s avant le contact suivant...")
-                        time.sleep(sleep_time)
-                        
-                st.success(f"🎉 Session d'envoi en continu terminée ! {success_count} emails envoyés avec succès ({fail_count} échecs).")
-                st.session_state["show_session_report"] = True
-                time.sleep(1.5)
-                st.rerun()
+                        st.warning("Un envoi est déjà en cours d'exécution.")
 
     st.divider()
     
