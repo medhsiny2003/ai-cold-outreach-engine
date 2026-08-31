@@ -35,10 +35,18 @@ def clean_gmail_bounces_and_sync_db(smtp: SMTPSettings) -> Dict[str, Any]:
     try:
         mail.select("INBOX")
         search_queries = [
-            '(FROM "mailer-daemon@googlemail.com")',
+            '(FROM "mailer-daemon")',
+            '(FROM "postmaster")',
             '(FROM "Mail Delivery Subsystem")',
+            '(FROM "Mail Delivery System")',
             '(SUBJECT "Address not found")',
-            '(SUBJECT "Delivery Status Notification (Failure)")'
+            '(SUBJECT "Delivery Status Notification")',
+            '(SUBJECT "Undeliverable")',
+            '(SUBJECT "Non-delivery report")',
+            '(SUBJECT "Delivery Failure")',
+            '(SUBJECT "Failure Notice")',
+            '(SUBJECT "Returned mail")',
+            '(SUBJECT "Mail delivery failed")'
         ]
 
         found_msg_ids: Set[bytes] = set()
@@ -59,13 +67,13 @@ def clean_gmail_bounces_and_sync_db(smtp: SMTPSettings) -> Dict[str, Any]:
             msg = email.message_from_bytes(raw_email)
             
             failed_recipient = None
-            diagnostic_code = "550 5.1.1 Address not found (Mailer-Daemon)"
+            diagnostic_code = "550 5.1.1 Address not found (Mailer-Daemon / Postmaster)"
             
             # RFC 3464 DSN parsing
             for part in msg.walk():
                 if part.get_content_type() == "message/delivery-status":
                     sub_str = str(part.get_payload())
-                    rm = re.search(r"Final-Recipient:\s*(?:rfc822;)?\s*([^\s;]+)", sub_str, re.IGNORECASE)
+                    rm = re.search(r"(?:Final-Recipient|Original-Recipient):\s*(?:rfc822;)?\s*([^\s;]+)", sub_str, re.IGNORECASE)
                     dm = re.search(r"Diagnostic-Code:\s*(.*)", sub_str, re.IGNORECASE)
                     if rm:
                         failed_recipient = rm.group(1).strip().strip("<>")
@@ -75,18 +83,18 @@ def clean_gmail_bounces_and_sync_db(smtp: SMTPSettings) -> Dict[str, Any]:
             if not failed_recipient:
                 body_text = ""
                 for part in msg.walk():
-                    if part.get_content_type() == "text/plain":
+                    if part.get_content_type() in ["text/plain", "text/html"]:
                         try:
                             body_text += part.get_payload(decode=True).decode(errors="ignore") + "\n"
                         except Exception:
                             pass
-                tm = re.search(r"(?:wasn\'t delivered to|Address not found|couldn\'t be delivered to|failed:)\s*([^\s<]+@[^\s>]+)", body_text, re.IGNORECASE)
+                tm = re.search(r"(?:wasn\'t delivered to|Address not found|couldn\'t be delivered to|failed:|Delivery to the following recipient failed permanently:\s*|failed to deliver to:\s*|Undeliverable:\s*|Recipient address:\s*)\s*([^\s<]+@[^\s>]+)", body_text, re.IGNORECASE)
                 if tm:
                     failed_recipient = tm.group(1).strip().strip("<>").strip(".")
                 else:
                     for e in re.findall(r"[\w\.-]+@[\w\.-]+\.\w+", body_text):
                         el = e.lower().strip()
-                        if el != smtp.sender_email.lower() and "google" not in el and "daemon" not in el and "mail" not in el and "smtp" not in el:
+                        if el != smtp.sender_email.lower() and not any(x in el for x in ["google", "daemon", "postmaster", "smtp", "mailer", "bounce", "system", "exchange"]):
                             failed_recipient = el
                             break
 
