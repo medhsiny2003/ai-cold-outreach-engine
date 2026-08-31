@@ -587,14 +587,25 @@ with tab5:
     sent_contacts = [c for c in contacts if c.get("status") == "sent"]
     bounced_contacts = [c for c in contacts if c.get("status") == "bounced"]
     
-    # KPI Metrics Dashboard
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("📤 Déjà Envoyés", f"{len(sent_contacts)}")
-    m2.metric("⏳ Restants à Envoyer", f"{len(approved_contacts)}")
-    m3.metric("❌ Adresses Rejetées", f"{len(bounced_contacts)}")
-    m4.metric("📊 Total Base Contacts", f"{len(contacts)}")
-    
-    st.divider()
+    # Compact Permanent Lifetime Statistics Bar (Faible Encombrement)
+    total_processed = len(sent_contacts) + len(bounced_contacts)
+    deliv_rate = (len(sent_contacts) / total_processed * 100) if total_processed > 0 else 100.0
+
+    st.markdown(f"""
+    <div style="background: #f8fafc; padding: 10px 16px; border-radius: 10px; border: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 18px;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 1.1rem;">🌐</span>
+            <span style="font-weight: 700; color: #0f172a; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.5px;">Cumul Permanent :</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.84rem;">
+            <span style="background: #dcfce7; color: #166534; padding: 3px 9px; border-radius: 6px; font-weight: 700; border: 1px solid #86efac;">🟢 Arrivés / Délivrés : {len(sent_contacts)}</span>
+            <span style="background: #fee2e2; color: #991b1b; padding: 3px 9px; border-radius: 6px; font-weight: 700; border: 1px solid #fca5a5;">❌ Rejetés (Bounces) : {len(bounced_contacts)}</span>
+            <span style="background: #ffedd5; color: #9a3412; padding: 3px 9px; border-radius: 6px; font-weight: 700; border: 1px solid #fdba74;">⏳ Restants à Envoyer : {len(approved_contacts)}</span>
+            <span style="background: #e0f2fe; color: #0369a1; padding: 3px 9px; border-radius: 6px; font-weight: 700; border: 1px solid #7dd3fc;">👥 Total Base : {len(contacts)}</span>
+            <span style="background: #f3e8ff; color: #6b21a8; padding: 3px 9px; border-radius: 6px; font-weight: 800; border: 1px solid #d8b4fe;">🎯 Délivrabilité : {deliv_rate:.1f}%</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     col_s1, col_s2 = st.columns([1, 1])
     
@@ -817,10 +828,22 @@ mohammedhsiny2@gmail.com"""
                             st.warning("⚠️ **Authentification Gmail** : Vérifiez votre mot de passe d'application 16 lettres dans l'onglet 'Paramètres & Gmail'.")
                         
                     progress_bar.progress((idx + 1) / total_to_send)
-                    live_stats_box.markdown(
-                        f"📊 **Statistiques Session en Direct :** 🟢 `{success_count}` envoyés avec succès | "
-                        f"🔴 `{fail_count}` échecs | ⏳ `{total_to_send - (idx + 1)}` restants à envoyer"
-                    )
+                    
+                    cumul_sent = len(sent_contacts) + success_count
+                    cumul_bounced = len(bounced_contacts) + fail_count
+                    cumul_proc = cumul_sent + cumul_bounced
+                    cumul_rate = (cumul_sent / cumul_proc * 100) if cumul_proc > 0 else 100.0
+                    
+                    live_stats_box.markdown(f"""
+                    <div style="background: #ffffff; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 6px;">
+                        <div style="font-size: 0.83rem; color: #475569; margin-bottom: 4px;">
+                            ⚡ <b>Session en Direct :</b> 🟢 <code>{success_count}</code> réussis | 🔴 <code>{fail_count}</code> échecs | ⏳ <code>{total_to_send - (idx + 1)}</code> restants dans ce lot
+                        </div>
+                        <div style="font-size: 0.85rem; color: #0f172a; font-weight: 700;">
+                            🌐 <b>Cumul Permanent (Toujours) :</b> 🟢 <span style="color:#16a34a;">{cumul_sent} délivrés</span> | 🔴 <span style="color:#dc2626;">{cumul_bounced} rejetés</span> | 🎯 Taux Global : <span style="color:#7c3aed;">{cumul_rate:.1f}%</span>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
                     
                     # Inter-email jitter pause
                     if idx < total_to_send - 1:
