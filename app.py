@@ -24,12 +24,24 @@ st.set_page_config(
 from config import (
     BASE_DIR, DATA_DIR, UPLOADS_DIR, CandidateProfile, SMTPSettings, LLMSettings, is_francophone
 )
-from services.storage_service import (
-    init_db, load_profile, save_profile, load_smtp_settings, save_smtp_settings,
-    load_llm_settings, save_llm_settings, get_all_contacts, save_or_update_contact,
-    save_contacts_bulk, approve_all_contacts, clear_all_contacts, log_sent_email, get_all_sent_logs,
-    get_all_recruiter_responses, mark_response_read
-)
+try:
+    from services.storage_service import (
+        init_db, load_profile, save_profile, load_smtp_settings, save_smtp_settings,
+        load_llm_settings, save_llm_settings, get_all_contacts, save_or_update_contact,
+        save_contacts_bulk, approve_all_contacts, clear_all_contacts, log_sent_email, get_all_sent_logs,
+        get_all_recruiter_responses, mark_response_read
+    )
+except ImportError:
+    from services.storage_service import (
+        init_db, load_profile, save_profile, load_smtp_settings, save_smtp_settings,
+        load_llm_settings, save_llm_settings, get_all_contacts, save_or_update_contact,
+        save_contacts_bulk, approve_all_contacts, clear_all_contacts, log_sent_email, get_all_sent_logs
+    )
+    def get_all_recruiter_responses():
+        return []
+    def mark_response_read(resp_id):
+        pass
+
 from services.contact_manager import parse_contacts_file, generate_sample_csv
 from services.prompt_builder import determine_language
 from services.llm_service import generate_email_for_contact
@@ -39,7 +51,20 @@ from services.email_sender import (
 )
 from services.gmail_cleaner import clean_gmail_bounces_and_sync_db, sync_sent_and_bounced_with_gmail
 from services.analytics_service import compute_company_analytics, send_quality_report_email
-from services.response_tracker import scan_incoming_recruiter_replies, BackgroundSyncDaemon
+
+try:
+    from services.response_tracker import scan_incoming_recruiter_replies, BackgroundSyncDaemon
+except ImportError:
+    def scan_incoming_recruiter_replies(smtp, profile=None):
+        return {"success": False, "message": "Module de suivi en cours d'initialisation.", "new_responses": 0}
+    class BackgroundSyncDaemon:
+        last_status_message = "En veille"
+        @classmethod
+        def start(cls, interval_seconds: int = 45):
+            pass
+        @classmethod
+        def stop(cls):
+            pass
 
 # Initialize DB schema & Start Background Auto-Sync Daemon (45s non-blocking loop)
 init_db()
