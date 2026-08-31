@@ -32,34 +32,41 @@ class SendResult:
         }
 
 def test_smtp_connection(settings: SMTPSettings) -> Dict[str, Any]:
-    """Tests the SMTP connection and login credentials."""
+    """Tests the SMTP connection and login credentials with automatic dual-port check."""
     if not settings.sender_email or not settings.app_password:
         return {"success": False, "message": "Adresse email ou mot de passe d'application manquant."}
         
     clean_password = settings.app_password.replace(" ", "").strip()
     
+    # Try Port 587 TLS first, then 465 SSL
+    errors = []
+    
+    # 1. Test TLS 587
     try:
-        if settings.use_ssl:
+        with smtplib.SMTP(settings.smtp_host, 587, timeout=15) as server:
+            server.ehlo()
             context = ssl.create_default_context()
-            with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, context=context, timeout=20) as server:
-                server.login(settings.sender_email, clean_password)
-                return {"success": True, "message": "Connexion SMTP réussie (SSL) !"}
-        else:
-            with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as server:
-                server.ehlo()
-                if settings.use_tls:
-                    context = ssl.create_default_context()
-                    server.starttls(context=context)
-                    server.ehlo()
-                server.login(settings.sender_email, clean_password)
-                return {"success": True, "message": "Connexion SMTP réussie (TLS) !"}
-    except smtplib.SMTPAuthenticationError as e:
-        return {
-            "success": False,
-            "message": "Erreur d'authentification Gmail (535) : Mot de passe d'application invalide."
-        }
+            server.starttls(context=context)
+            server.ehlo()
+            server.login(settings.sender_email, clean_password)
+            return {"success": True, "message": "Connexion SMTP Gmail validée avec succès (TLS Port 587) !"}
+    except smtplib.SMTPAuthenticationError:
+        return {"success": False, "message": "Erreur 535 : Mot de passe d'application invalide."}
     except Exception as e:
-        return {"success": False, "message": f"Erreur de connexion SMTP : {str(e)}"}
+        errors.append(f"Port 587 ({e})")
+        
+    # 2. Test SSL 465
+    try:
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL(settings.smtp_host, 465, context=context, timeout=15) as server:
+            server.login(settings.sender_email, clean_password)
+            return {"success": True, "message": "Connexion SMTP Gmail validée avec succès (SSL Port 465) !"}
+    except smtplib.SMTPAuthenticationError:
+        return {"success": False, "message": "Erreur 535 : Mot de passe d'application invalide."}
+    except Exception as e:
+        errors.append(f"Port 465 ({e})")
+        
+    return {"success": False, "message": f"Échec de connexion SMTP : {'; '.join(errors)}"}
 
 def build_professional_html(
     body_text: str,
@@ -285,6 +292,7 @@ def send_single_email(
         
     clean_password = settings.app_password.replace(" ", "").strip()
     
+    # 1. Build MIME Message
     try:
         msg = create_email_message(
             sender_name=settings.sender_name,
@@ -296,25 +304,48 @@ def send_single_email(
             profile=profile,
             language=language
         )
+    except Exception as e:
+        return SendResult(recipient=recipient_email, success=False, message=f"Erreur de création MIME : {str(e)}")
+
+    # 2. Attempt Send with Dual-Port Cloud Fallback (587 TLS -> 465 SSL)
+    last_err = None
+    
+    # Try configured mode first
+    attempts = []
+    if settings.use_ssl:
+        attempts.append(("SSL", 465))
+        attempts.append(("TLS", 587))
+    else:
+        attempts.append(("TLS", 587))
+        attempts.append(("SSL", 465))
         
-        if settings.use_ssl:
-            context = ssl.create_default_context()
-            with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, context=context, timeout=30) as server:
-                server.login(settings.sender_email, clean_password)
-                server.send_message(msg)
-        else:
-            with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=30) as server:
-                server.ehlo()
-                if settings.use_tls:
+    for mode, port in attempts:
+        try:
+            if mode == "SSL" or port == 465:
+                context = ssl.create_default_context()
+                with smtplib.SMTP_SSL(settings.smtp_host, 465, context=context, timeout=25) as server:
+                    server.login(settings.sender_email, clean_password)
+                    server.send_message(msg)
+                    return SendResult(recipient=recipient_email, success=True, message="Email envoyé avec succès (SSL 465) !")
+            else:
+                with smtplib.SMTP(settings.smtp_host, 587, timeout=25) as server:
+                    server.ehlo()
                     context = ssl.create_default_context()
                     server.starttls(context=context)
                     server.ehlo()
-                server.login(settings.sender_email, clean_password)
-                server.send_message(msg)
-                
-        return SendResult(recipient=recipient_email, success=True, message="Email envoyé avec succès !")
-    except Exception as e:
-        return SendResult(recipient=recipient_email, success=False, message=str(e))
+                    server.login(settings.sender_email, clean_password)
+                    server.send_message(msg)
+                    return SendResult(recipient=recipient_email, success=True, message="Email envoyé avec succès (TLS 587) !")
+        except smtplib.SMTPAuthenticationError:
+            return SendResult(recipient=recipient_email, success=False, message="Erreur 535 : Mot de passe d'application Gmail invalide.")
+        except Exception as e:
+            last_err = e
+            # If 550 limit exceeded, do not retry other port as quota is account-level
+            if "550" in str(e) or "limit" in str(e).lower():
+                return SendResult(recipient=recipient_email, success=False, message=f"Quota Google 550 : {str(e)}")
+            continue
+
+    return SendResult(recipient=recipient_email, success=False, message=f"Échec de connexion SMTP ({last_err})")
 
 def send_html_email(
     settings: SMTPSettings,
