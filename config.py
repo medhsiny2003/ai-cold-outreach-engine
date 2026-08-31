@@ -111,7 +111,7 @@ class SMTPSettings(BaseModel):
     use_ssl: bool = False
     sender_email: str = Field(default_factory=lambda: os.getenv("GMAIL_SENDER_EMAIL", "mohammedhsiny2@gmail.com"))
     sender_name: str = "Mohammed HSINY"
-    app_password: str = Field(default_factory=lambda: os.getenv("GMAIL_APP_PASSWORD", "qawi kviz qjqu hwgb"))
+    app_password: str = Field(default_factory=lambda: os.getenv("GMAIL_APP_PASSWORD", ""))
     min_delay_seconds: int = 4
     max_delay_seconds: int = 8
     daily_limit: int = 500

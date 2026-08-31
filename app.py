@@ -204,6 +204,15 @@ with st.sidebar:
     st.caption("🏆 **Président Club RoboThings** | FSTM")
     st.caption(f"🎓 {profile.title_fr}")
     
+    is_connected = bool(smtp.app_password and smtp.app_password.strip())
+    
+    st.divider()
+    st.markdown("### <i class='fa-solid fa-signal' style='color:#6366f1;'></i> État de Connexion", unsafe_allow_html=True)
+    if is_connected:
+        st.markdown("<span style='background:#dcfce7; color:#166534; padding:4px 10px; border-radius:12px; font-weight:700; font-size:0.82rem;'>🟢 Gmail Connecté</span>", unsafe_allow_html=True)
+    else:
+        st.markdown("<span style='background:#fee2e2; color:#991b1b; padding:4px 10px; border-radius:12px; font-weight:700; font-size:0.82rem;'>🔴 Compte Déconnecté (Pause)</span>", unsafe_allow_html=True)
+
     st.divider()
     
     # Active Attachments Check
@@ -235,6 +244,8 @@ with st.sidebar:
 
 # Main Hero Banner with Pro Styling & Icons
 daemon_status = BackgroundSyncDaemon.last_status_message
+conn_badge = """<span class="hero-badge" style="background: rgba(16, 185, 129, 0.2); color: #a7f3d0; border-color: rgba(52, 211, 153, 0.3);"><i class="fa-solid fa-circle-check"></i> Système Connecté</span>""" if is_connected else """<span class="hero-badge" style="background: rgba(239, 68, 68, 0.25); color: #fca5a5; border-color: rgba(248, 113, 113, 0.4);"><i class="fa-solid fa-lock"></i> Compte Déconnecté (Pause)</span>"""
+
 st.markdown(f"""
 <div class="hero-banner">
     <div>
@@ -243,7 +254,7 @@ st.markdown(f"""
     </div>
     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
         <span class="hero-badge"><i class="fa-solid fa-shield-halved"></i> Audit RFC 3464 Google</span>
-        <span class="hero-badge" style="background: rgba(16, 185, 129, 0.2); color: #a7f3d0; border-color: rgba(52, 211, 153, 0.3);"><i class="fa-solid fa-circle-check"></i> Système Connecté</span>
+        {conn_badge}
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1104,35 +1115,95 @@ with tab6:
 # TAB 7: Paramètres & Gmail
 # -------------------------------------------------------------
 with tab7:
-    st.header("⚙️ Configuration Gmail & Clés API")
+    st.header("⚙️ Configuration Gmail & Sécurité du Compte")
     
+    is_connected = bool(smtp.app_password and smtp.app_password.strip())
+    
+    # Prominent Disconnection / Connection Status Card
+    if is_connected:
+        st.markdown("""
+        <div style="background: #f0fdf4; border: 2px solid #22c55e; border-radius: 12px; padding: 18px 22px; margin-bottom: 22px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="font-size: 1.8rem; color: #16a34a;"><i class="fa-solid fa-circle-check"></i></div>
+                    <div>
+                        <div style="font-size: 1.15rem; font-weight: 800; color: #166534;">🟢 COMPTE GMAIL ACTUELLEMENT CONNECTÉ</div>
+                        <div style="color: #15803d; font-size: 0.88rem; margin-top: 2px;">
+                            Votre adresse <code>{}</code> est configurée pour la prospection et la synchronisation.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        """.format(smtp.sender_email), unsafe_allow_html=True)
+        
+        col_dc1, col_dc2 = st.columns([2, 1])
+        with col_dc1:
+            st.caption("Vous pouvez déconnecter immédiatement votre compte Gmail pour stopper toute activité en arrière-plan.")
+        with col_dc2:
+            if st.button("🔴 DÉCONNECTER MON COMPTE GMAIL", type="secondary", use_container_width=True, help="Coupe immédiatement toute connexion avec Gmail"):
+                smtp.app_password = ""
+                save_smtp_settings(smtp)
+                BackgroundSyncDaemon.stop()
+                BackgroundDispatcher.stop()
+                st.warning("Compte Gmail déconnecté avec succès. Toutes les connexions sont coupées.")
+                time.sleep(1)
+                st.rerun()
+    else:
+        st.markdown("""
+        <div style="background: #fef2f2; border: 2px solid #ef4444; border-radius: 12px; padding: 18px 22px; margin-bottom: 22px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <div style="font-size: 2rem; color: #dc2626;"><i class="fa-solid fa-lock"></i></div>
+                <div>
+                    <div style="font-size: 1.2rem; font-weight: 800; color: #991b1b;">🔴 COMPTE GMAIL TOTALEMENT DÉCONNECTÉ (MODE PAUSE)</div>
+                    <div style="color: #7f1d1d; font-size: 0.92rem; margin-top: 4px;">
+                        Toutes les requêtes vers les serveurs de Google sont coupées. Aucune synchronisation ni aucun envoi n'a lieu tant que vous ne donnez pas l'ordre de reconnexion.
+                    </div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.divider()
     col_cfg1, col_cfg2 = st.columns(2)
     
     with col_cfg1:
-        st.subheader("📧 Configuration SMTP Gmail")
+        st.subheader("📧 Gestion des Identifiants Gmail")
         st.markdown("""
-        > **Comment générer votre Mot de Passe d'Application Gmail (16 caractères) ?**
-        > 1. Activez la **Validation en 2 étapes** sur votre compte Google : [Sécurité Google](https://myaccount.google.com/security)
-        > 2. Rendez-vous sur : [Mots de passe des applications](https://myaccount.google.com/apppasswords)
-        > 3. Entrez un nom (ex: `Outreach-App`) et cliquez sur **Créer**.
-        > 4. Copiez le code de 16 lettres (ex: `abcd efgh ijkl mnop`) et collez-le ci-dessous.
+        > **Pour reconnecter votre compte Gmail en toute sécurité :**
+        > 1. Rendez-vous sur : [Mots de passe des applications Google](https://myaccount.google.com/apppasswords)
+        > 2. Générez un mot de passe d'application de 16 lettres (ex: `abcd efgh ijkl mnop`).
+        > 3. Collez-le ci-dessous et cliquez sur **🔌 Reconnecter mon compte**.
         """)
         
         cfg_sender_name = st.text_input("Nom d'expéditeur", value=smtp.sender_name)
         cfg_sender_email = st.text_input("Adresse Gmail expéditrice", value=smtp.sender_email)
-        cfg_app_pwd = st.text_input("Mot de passe d'application Gmail (16 caractères)", value=smtp.app_password, type="password")
+        cfg_app_pwd = st.text_input("Mot de passe d'application Gmail (16 caractères)", value=smtp.app_password, type="password", help="Laissez vide pour maintenir le compte déconnecté")
         
-        if st.button("🔍 Tester la connexion SMTP", type="primary"):
-            smtp.sender_name = cfg_sender_name
-            smtp.sender_email = cfg_sender_email
-            smtp.app_password = cfg_app_pwd
-            save_smtp_settings(smtp)
-            
-            res_test = test_smtp_connection(smtp)
-            if res_test["success"]:
-                st.success(f"✅ {res_test['message']}")
-            else:
-                st.error(f"❌ {res_test['message']}")
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            if st.button("🔌 Reconnecter & Sauvegarder", type="primary", use_container_width=True):
+                smtp.sender_name = cfg_sender_name
+                smtp.sender_email = cfg_sender_email
+                smtp.app_password = cfg_app_pwd
+                save_smtp_settings(smtp)
+                if cfg_app_pwd.strip():
+                    st.success("✅ Compte Gmail reconnecté avec succès !")
+                else:
+                    st.warning("⚠️ Compte enregistré en mode déconnecté (mot de passe vide).")
+                time.sleep(1)
+                st.rerun()
+        with col_btn2:
+            if st.button("🔍 Tester la connexion", use_container_width=True):
+                smtp.sender_name = cfg_sender_name
+                smtp.sender_email = cfg_sender_email
+                smtp.app_password = cfg_app_pwd
+                save_smtp_settings(smtp)
+                res_test = test_smtp_connection(smtp)
+                if res_test["success"]:
+                    st.success(f"✅ {res_test['message']}")
+                else:
+                    st.error(f"❌ {res_test['message']}")
                 
     with col_cfg2:
         st.subheader("🔑 Clé API Intelligence Artificielle")
@@ -1144,11 +1215,7 @@ with tab7:
         
         cfg_api_key = st.text_input("Clé API (Gemini / OpenAI / Groq / DeepSeek)", value=llm.api_key, type="password")
         
-        if st.button("💾 Sauvegarder les paramètres API"):
+        if st.button("💾 Sauvegarder la clé API", use_container_width=True):
             llm.api_key = cfg_api_key
             save_llm_settings(llm)
-            smtp.sender_name = cfg_sender_name
-            smtp.sender_email = cfg_sender_email
-            smtp.app_password = cfg_app_pwd
-            save_smtp_settings(smtp)
-            st.success("Paramètres enregistrés avec succès !")
+            st.success("Clé API enregistrée avec succès !")

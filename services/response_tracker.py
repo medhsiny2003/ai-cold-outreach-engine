@@ -238,11 +238,13 @@ class BackgroundSyncDaemon:
         while cls._running:
             try:
                 smtp = load_smtp_settings()
-                if smtp.app_password:
+                if smtp.app_password and smtp.app_password.strip():
                     # 1. Sync bounces and responses
                     res_rep = scan_incoming_recruiter_replies(smtp)
                     cls.last_sync_time = time.time()
                     cls.last_status_message = f"Dernière synchronisation réussie à {time.strftime('%H:%M:%S')}"
+                else:
+                    cls.last_status_message = "🔴 Compte déconnecté (mode pause). Aucune requête envoyée à Gmail."
             except Exception as ex:
                 cls.last_status_message = f"Erreur lors de la synchronisation : {ex}"
             time.sleep(interval)
