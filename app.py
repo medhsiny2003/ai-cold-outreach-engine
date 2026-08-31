@@ -810,6 +810,11 @@ mohammedhsiny2@gmail.com"""
                         save_or_update_contact(item)
                         log_sent_email(item["email"], item["subject"], item["body"], "FAILED", res.message)
                         fail_count += 1
+                        st.error(f"❌ Échec pour **{item.get('name') or item['email']}** (`{item['email']}`) : {res.message}")
+                        if "550" in str(res.message) or "limit" in str(res.message).lower():
+                            st.warning("⚠️ **Quota Journalier Gmail Atteint** : Google applique une limite de 500 emails par 24h glissantes.")
+                        elif "535" in str(res.message) or "password" in str(res.message).lower() or "auth" in str(res.message).lower():
+                            st.warning("⚠️ **Authentification Gmail** : Vérifiez votre mot de passe d'application 16 lettres dans l'onglet 'Paramètres & Gmail'.")
                         
                     progress_bar.progress((idx + 1) / total_to_send)
                     live_stats_box.markdown(
