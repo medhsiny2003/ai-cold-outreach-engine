@@ -83,43 +83,92 @@ except ImportError:
 init_db()
 BackgroundSyncDaemon.start(interval_seconds=45)
 
-# Custom CSS for modern styling
+# Modern SaaS Styling & FontAwesome 6 Pro CDN Injection
 st.markdown("""
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-    .main-header {
-        font-size: 2.2rem;
+    html, body, [class*="css"] {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .hero-banner {
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+        border-radius: 16px;
+        padding: 26px 32px;
+        color: white;
+        margin-bottom: 24px;
+        box-shadow: 0 12px 30px -10px rgba(49, 46, 129, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .hero-title {
+        font-size: 2rem;
         font-weight: 800;
-        background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%);
+        letter-spacing: -0.5px;
+        background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: 0.2rem;
+        margin: 0;
     }
-    .sub-header {
-        color: #555;
-        font-size: 1.05rem;
-        margin-bottom: 1.5rem;
+    .hero-subtitle {
+        color: #94a3b8;
+        font-size: 0.95rem;
+        margin-top: 6px;
+        font-weight: 400;
     }
-    .metric-card {
-        background-color: #f8f9fa;
-        border-radius: 10px;
-        padding: 15px;
-        border-left: 4px solid #1E88E5;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    .hero-badge {
+        background: rgba(99, 102, 241, 0.2);
+        color: #c7d2fe;
+        border: 1px solid rgba(165, 180, 252, 0.3);
+        padding: 6px 14px;
+        border-radius: 30px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
     }
-    .email-preview-box {
-        background-color: #ffffff;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        padding: 20px;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        line-height: 1.6;
-        color: #2c3e50;
+    .pro-kpi-card {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 18px 20px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 16px;
     }
-    .badge-status {
-        padding: 3px 8px;
+    .pro-kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.08);
+    }
+    .kpi-icon-box {
+        width: 48px;
+        height: 48px;
         border-radius: 12px;
-        font-size: 0.8rem;
-        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+    }
+    .kpi-title {
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #64748b;
+    }
+    .kpi-value {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.2;
+        margin-top: 2px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -136,22 +185,29 @@ profile = st.session_state.profile
 smtp = st.session_state.smtp
 llm = st.session_state.llm
 
+# Live Real-Time Metrics
+contacts = get_all_contacts()
+total_contacts = len(contacts)
+sent_count = sum(1 for c in contacts if c.get("status") == "sent")
+approved_waiting_count = sum(1 for c in contacts if c.get("status") == "approved")
+bounced_count = sum(1 for c in contacts if c.get("status") == "bounced")
+replied_count = sum(1 for c in contacts if c.get("status") == "replied")
+
 # Sidebar
 with st.sidebar:
     if LOGO_PATH.is_file():
-        st.image(str(LOGO_PATH), width=110)
+        st.image(str(LOGO_PATH), width=120)
     else:
         st.image("https://img.icons8.com/fluency/96/artificial-intelligence.png", width=64)
         
-    st.title("Outreach Hub")
-    st.markdown(f"### **{profile.name}**")
+    st.markdown(f"### <i class='fa-solid fa-user-astronaut' style='color:#6366f1;'></i> **{profile.name}**", unsafe_allow_html=True)
     st.caption("🏆 **Président Club RoboThings** | FSTM")
     st.caption(f"🎓 {profile.title_fr}")
     
     st.divider()
     
     # Active Attachments Check
-    st.markdown("### 📎 Documents Attachés")
+    st.markdown("### <i class='fa-solid fa-paperclip' style='color:#3b82f6;'></i> Documents Attachés", unsafe_allow_html=True)
     cv_fr = UPLOADS_DIR / "CV_Mohammed_HSINY_FR.pdf"
     cv_en = UPLOADS_DIR / "CV_Mohammed_HSINY_EN.pdf"
     portfolio_pdf = UPLOADS_DIR / "Portfolio_Mohammed_HSINY.pdf"
@@ -164,63 +220,93 @@ with st.sidebar:
         st.success("📁 `Portfolio_Mohammed_HSINY.pdf` (Actif)")
         
     st.divider()
-    st.markdown("### 🔗 Liens Officiels")
-    st.markdown(f"- [🌐 Portfolio en ligne]({profile.portfolio_url})")
-    st.markdown(f"- [💼 Profil LinkedIn]({profile.linkedin_url})")
+    st.markdown("### <i class='fa-solid fa-link' style='color:#8b5cf6;'></i> Liens Officiels", unsafe_allow_html=True)
+    st.markdown(f"- [🌐 **Portfolio en ligne**]({profile.portfolio_url})")
+    st.markdown(f"- [💼 **Profil LinkedIn**]({profile.linkedin_url})")
     st.markdown(f"- ✉️ `{profile.email}`")
     st.markdown(f"- 📱 `{profile.phone}`")
-
-# Live Real-Time Metrics
-contacts = get_all_contacts()
-total_contacts = len(contacts)
-sent_count = sum(1 for c in contacts if c.get("status") == "sent")
-approved_waiting_count = sum(1 for c in contacts if c.get("status") == "approved")
-bounced_count = sum(1 for c in contacts if c.get("status") == "bounced")
-pending_count = sum(1 for c in contacts if c.get("status") in ["pending", "failed"])
-
-# Sidebar Live Monitor
-with st.sidebar:
+    
     st.divider()
-    st.markdown("### 📊 Suivi en Temps Réel")
-    st.markdown(f"- 🟢 **Délivrés sans erreur :** `{sent_count}`")
-    st.markdown(f"- 🔴 **Rejetés (Address not found) :** `{bounced_count}`")
-    st.markdown(f"- ⏳ **En attente d'envoi :** `{approved_waiting_count}`")
-    st.markdown(f"- 👥 **Total Contacts :** `{total_contacts}`")
+    st.markdown("### <i class='fa-solid fa-chart-simple' style='color:#10b981;'></i> Suivi en Temps Réel", unsafe_allow_html=True)
+    st.markdown(f"- 🟢 **Délivrés :** `{sent_count}`")
+    st.markdown(f"- 💬 **Réponses reçues :** `{replied_count}`")
+    st.markdown(f"- 🔴 **Rejetés (Bounces) :** `{bounced_count}`")
+    st.markdown(f"- ⏳ **En attente :** `{approved_waiting_count}`")
 
-# Main Header
-st.markdown('<div class="main-header">⚡ AI Cold Outreach Engine & Email Automation</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Générateur intelligent d\'emails de prospection pour stage PFE avec validation de délivrabilité Gmail certifiée (RFC 3464).</div>', unsafe_allow_html=True)
-
-# Top Metrics Row (Robust HTML/CSS Cards)
+# Main Hero Banner with Pro Styling & Icons
+daemon_status = BackgroundSyncDaemon.last_status_message
 st.markdown(f"""
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 24px;">
-    <div style="background: white; padding: 16px 20px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-        <div style="font-size: 0.82rem; color: #64748b; font-weight: 600; text-transform: uppercase;">👥 Total Contacts</div>
-        <div style="font-size: 1.85rem; font-weight: 800; color: #0f172a; margin-top: 4px;">{total_contacts}</div>
+<div class="hero-banner">
+    <div>
+        <div class="hero-title"><i class="fa-solid fa-bolt-lightning" style="color: #fbbf24; margin-right: 10px;"></i>AI Cold Outreach Engine Pro</div>
+        <div class="hero-subtitle">Plateforme d'automatisation & prospection intelligente pour Stage PFE | Mohammed HSINY (FST Mohammedia)</div>
     </div>
-    <div style="background: white; padding: 16px 20px; border-radius: 12px; border: 1px solid #bbf7d0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-        <div style="font-size: 0.82rem; color: #166534; font-weight: 600; text-transform: uppercase;">🚀 Envoyés avec Succès</div>
-        <div style="font-size: 1.85rem; font-weight: 800; color: #16a34a; margin-top: 4px;">{sent_count}</div>
-    </div>
-    <div style="background: white; padding: 16px 20px; border-radius: 12px; border: 1px solid #fecaca; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-        <div style="font-size: 0.82rem; color: #991b1b; font-weight: 600; text-transform: uppercase;">❌ Address Not Found</div>
-        <div style="font-size: 1.85rem; font-weight: 800; color: #dc2626; margin-top: 4px;">{bounced_count}</div>
-    </div>
-    <div style="background: white; padding: 16px 20px; border-radius: 12px; border: 1px solid #fed7aa; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-        <div style="font-size: 0.82rem; color: #9a3412; font-weight: 600; text-transform: uppercase;">⏳ Restants à Envoyer</div>
-        <div style="font-size: 1.85rem; font-weight: 800; color: #ea580c; margin-top: 4px;">{approved_waiting_count}</div>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <span class="hero-badge"><i class="fa-solid fa-shield-halved"></i> Audit RFC 3464 Google</span>
+        <span class="hero-badge" style="background: rgba(16, 185, 129, 0.2); color: #a7f3d0; border-color: rgba(52, 211, 153, 0.3);"><i class="fa-solid fa-circle-check"></i> Système Connecté</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# Navigation Tabs
+# Top Metrics Row with Pro FontAwesome Icons
+st.markdown(f"""
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 24px;">
+    <div class="pro-kpi-card">
+        <div class="kpi-icon-box" style="background: #eff6ff; color: #2563eb;">
+            <i class="fa-solid fa-users"></i>
+        </div>
+        <div>
+            <div class="kpi-title">Total Base</div>
+            <div class="kpi-value">{total_contacts}</div>
+        </div>
+    </div>
+    <div class="pro-kpi-card">
+        <div class="kpi-icon-box" style="background: #f0fdf4; color: #16a34a;">
+            <i class="fa-solid fa-paper-plane"></i>
+        </div>
+        <div>
+            <div class="kpi-title">Délivrés avec Succès</div>
+            <div class="kpi-value" style="color: #16a34a;">{sent_count}</div>
+        </div>
+    </div>
+    <div class="pro-kpi-card">
+        <div class="kpi-icon-box" style="background: #fdf4ff; color: #9333ea;">
+            <i class="fa-solid fa-comments"></i>
+        </div>
+        <div>
+            <div class="kpi-title">Réponses Recruteurs</div>
+            <div class="kpi-value" style="color: #9333ea;">{replied_count}</div>
+        </div>
+    </div>
+    <div class="pro-kpi-card">
+        <div class="kpi-icon-box" style="background: #fef2f2; color: #dc2626;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+            <div class="kpi-title">Rejetés (Bounces DSN)</div>
+            <div class="kpi-value" style="color: #dc2626;">{bounced_count}</div>
+        </div>
+    </div>
+    <div class="pro-kpi-card">
+        <div class="kpi-icon-box" style="background: #fffbeb; color: #d97706;">
+            <i class="fa-solid fa-hourglass-half"></i>
+        </div>
+        <div>
+            <div class="kpi-title">En Attente</div>
+            <div class="kpi-value" style="color: #d97706;">{approved_waiting_count}</div>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Navigation Tabs with Icons
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "👤 Mon Profil & CV",
-    "👥 Contacts (CSV / Excel)",
-    "🤖 Génération IA",
+    "👥 Contacts & Import",
+    "🤖 Studio IA",
     "✍️ Revue & Édition",
     "🚀 Centre d'Envoi",
-    "💬 Réponses Recruteurs & IA",
+    "💬 Réponses & IA",
     "⚙️ Paramètres & Gmail"
 ])
 
