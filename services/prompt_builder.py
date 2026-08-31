@@ -1,4 +1,4 @@
-﻿import json
+import json
 from typing import Dict, Any, Optional
 from config import CandidateProfile, is_francophone
 

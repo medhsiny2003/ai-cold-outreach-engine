@@ -45,15 +45,12 @@ COLUMN_PRIORITIES = {
 }
 
 def clean_person_name(name_str: str) -> str:
-    """Normalizes person name, removes honorifics (M., Mme, Dr., etc.) and fixes casing."""
+    """Normalizes person name, removes honorifics (M., Mme, Dr., etc.) and formats as Title Case."""
     if not name_str:
         return ""
     # Remove honorific prefixes
     cleaned = re.sub(r'^(?:M\.|Mme|Mr\.|Dr\.|Prof\.|Ing\.)\s+', '', name_str, flags=re.IGNORECASE).strip()
-    # If uppercase or lowercase, convert to Title Case
-    if cleaned.isupper() or cleaned.islower():
-        cleaned = cleaned.title()
-    return cleaned
+    return cleaned.title()
 
 def extract_best_email(row: pd.Series, company: str = "") -> str:
     """Extracts all valid emails from all relevant columns, selects the best corporate email."""

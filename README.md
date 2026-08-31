@@ -1,4 +1,4 @@
-﻿# ⚡ AI Cold Outreach Engine & Email Automation
+# ⚡ AI Cold Outreach Engine & Email Automation
 ### Plateforme Intelligente de Candidature Spécialisée Ingénieur (Embedded / Robotics / Automation / R&D)
 
 Développé pour **Mohammed HSINY** — Élève-Ingénieur en Génie Électrique & Contrôle Industriel (FST Mohammedia).

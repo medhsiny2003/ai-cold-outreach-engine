@@ -1,4 +1,4 @@
-﻿import os
+import os
 
 os.makedirs(".streamlit", exist_ok=True)
 
