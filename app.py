@@ -91,6 +91,47 @@ st.markdown("""
     html, body, [class*="css"] {
         font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     }
+    
+    /* Luxury SaaS Top Segmented Navigation Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 6px;
+        background: #f8fafc;
+        padding: 6px;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 24px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 46px;
+        white-space: pre-wrap;
+        background-color: transparent;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.90rem;
+        color: #475569;
+        padding: 8px 14px;
+        border: none !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: #f1f5f9;
+        color: #0f172a;
+        transform: translateY(-1px);
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
+        transform: translateY(-1px);
+    }
+    .stTabs [data-baseweb="tab-highlight"] {
+        display: none !important;
+    }
+
     .hero-banner {
         background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
         border-radius: 16px;
@@ -193,14 +234,18 @@ approved_waiting_count = sum(1 for c in contacts if c.get("status") == "approved
 bounced_count = sum(1 for c in contacts if c.get("status") == "bounced")
 replied_count = sum(1 for c in contacts if c.get("status") == "replied")
 
-# Sidebar
+CANDIDATE_PHOTO = BASE_DIR / "data" / "assets" / "mohammed_hsiny.png"
+
+# Sidebar with Candidate Portrait Photo
 with st.sidebar:
-    if LOGO_PATH.is_file():
+    if CANDIDATE_PHOTO.is_file():
+        st.image(str(CANDIDATE_PHOTO), use_container_width=True)
+    elif LOGO_PATH.is_file():
         st.image(str(LOGO_PATH), width=120)
     else:
         st.image("https://img.icons8.com/fluency/96/artificial-intelligence.png", width=64)
         
-    st.markdown(f"### <i class='fa-solid fa-user-astronaut' style='color:#6366f1;'></i> **{profile.name}**", unsafe_allow_html=True)
+    st.markdown(f"### <i class='fa-solid fa-user-tie' style='color:#6366f1;'></i> **{profile.name}**", unsafe_allow_html=True)
     st.caption("🏆 **Président Club RoboThings** | FSTM")
     st.caption(f"🎓 {profile.title_fr}")
     
