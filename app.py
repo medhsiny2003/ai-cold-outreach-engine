@@ -1154,25 +1154,25 @@ with tab6:
                 ["Toutes les réponses", "🎯 Entretiens Proposés", "🟡 Demandes d'Infos", "🔴 Refus Politisés", "⚪ Non lus uniquement"],
                 horizontal=True
             )
-        
-        filtered = responses
-        if filter_opt == "🎯 Entretiens Proposés":
-            filtered = [r for r in responses if r.get("intent_category") == "interview_offer"]
-        elif filter_opt == "🟡 Demandes d'Infos":
-            filtered = [r for r in responses if r.get("intent_category") == "request_info"]
-        elif filter_opt == "🔴 Refus Politisés":
-            filtered = [r for r in responses if r.get("intent_category") == "rejection"]
-        elif filter_opt == "⚪ Non lus uniquement":
-            filtered = [r for r in responses if not r.get("is_read")]
             
-        for r in filtered:
-            intent_meta = {
-                "interview_offer": ("🎯 ENTRETIEN PROPOSÉ", "#dcfce7", "#166534", "#86efac"),
-                "request_info": ("🟡 DEMANDE DE PRÉCISIONS", "#ffedd5", "#9a3412", "#fdba74"),
-                "rejection": ("🔴 REFUS POLI", "#fee2e2", "#991b1b", "#fca5a5"),
-                "out_of_office": ("⚪ ABSENCE DU BUREAU", "#f1f5f9", "#475569", "#cbd5e1"),
-                "general": ("💬 RÉPONSE GÉNÉRALE", "#e0f2fe", "#0369a1", "#7dd3fc")
-            }.get(r.get("intent_category", "general"), ("💬 RÉPONSE", "#f8fafc", "#334155", "#cbd5e1"))
+            filtered = responses
+            if filter_opt == "🎯 Entretiens Proposés":
+                filtered = [r for r in responses if r.get("intent_category") == "interview_offer"]
+            elif filter_opt == "🟡 Demandes d'Infos":
+                filtered = [r for r in responses if r.get("intent_category") == "request_info"]
+            elif filter_opt == "🔴 Refus Politisés":
+                filtered = [r for r in responses if r.get("intent_category") == "rejection"]
+            elif filter_opt == "⚪ Non lus uniquement":
+                filtered = [r for r in responses if not r.get("is_read")]
+                
+            for r in filtered:
+                intent_meta = {
+                    "interview_offer": ("🎯 ENTRETIEN PROPOSÉ", "#dcfce7", "#166534", "#86efac"),
+                    "request_info": ("🟡 DEMANDE DE PRÉCISIONS", "#ffedd5", "#9a3412", "#fdba74"),
+                    "rejection": ("🔴 REFUS POLI", "#fee2e2", "#991b1b", "#fca5a5"),
+                    "out_of_office": ("⚪ ABSENCE DU BUREAU", "#f1f5f9", "#475569", "#cbd5e1"),
+                    "general": ("💬 RÉPONSE GÉNÉRALE", "#e0f2fe", "#0369a1", "#7dd3fc")
+                }.get(r.get("intent_category", "general"), ("💬 RÉPONSE", "#f8fafc", "#334155", "#cbd5e1"))
             
             with st.container():
                 st.markdown(f"""
