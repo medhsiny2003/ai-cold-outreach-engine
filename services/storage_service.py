@@ -1,3 +1,4 @@
+import os
 import sqlite3
 import json
 import time
@@ -134,6 +135,7 @@ def save_smtp_settings(settings: SMTPSettings):
         conn.commit()
 
 def load_smtp_settings() -> SMTPSettings:
+    settings = SMTPSettings()
     with get_db_connection() as conn:
         row = conn.execute("SELECT data_json FROM smtp_settings WHERE id = 1").fetchone()
         if row:
@@ -142,10 +144,22 @@ def load_smtp_settings() -> SMTPSettings:
                 if settings.min_delay_seconds > 15:
                     settings.min_delay_seconds = 4
                     settings.max_delay_seconds = 8
-                return settings
             except Exception:
-                return SMTPSettings()
-    return SMTPSettings()
+                settings = SMTPSettings()
+                
+    # Secure fallback: load password from environment (.env) or Streamlit Secrets
+    if not settings.app_password:
+        env_pwd = os.getenv("GMAIL_APP_PASSWORD", "").strip()
+        if not env_pwd:
+            try:
+                import streamlit as st
+                env_pwd = st.secrets.get("GMAIL_APP_PASSWORD", "").strip()
+            except Exception:
+                pass
+        if env_pwd:
+            settings.app_password = env_pwd
+            
+    return settings
 
 def save_llm_settings(settings: LLMSettings):
     with get_db_connection() as conn:

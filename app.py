@@ -1375,17 +1375,26 @@ with tab7:
         
         cfg_sender_name = st.text_input("Nom d'expéditeur", value=smtp.sender_name)
         cfg_sender_email = st.text_input("Adresse Gmail expéditrice", value=smtp.sender_email)
-        cfg_app_pwd = st.text_input("Mot de passe d'application Gmail (16 caractères)", value=smtp.app_password, type="password", help="Laissez vide pour maintenir le compte déconnecté")
+        
+        pwd_placeholder = "•••• •••• •••• •••• (Mot de passe sécurisé & actif)" if smtp.app_password else "Ex: abcd efgh ijkl mnop"
+        cfg_app_pwd = st.text_input(
+            "Mot de passe d'application Gmail (16 caractères)",
+            value="",
+            type="password",
+            placeholder=pwd_placeholder,
+            help="Laissez vide pour conserver le mot de passe actif. Saisissez 16 lettres uniquement pour le modifier."
+        )
         
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
             if st.button("🔌 Reconnecter & Sauvegarder", type="primary", use_container_width=True):
                 smtp.sender_name = cfg_sender_name
                 smtp.sender_email = cfg_sender_email
-                smtp.app_password = cfg_app_pwd
-                save_smtp_settings(smtp)
                 if cfg_app_pwd.strip():
-                    st.success("✅ Compte Gmail reconnecté avec succès !")
+                    smtp.app_password = cfg_app_pwd.strip()
+                save_smtp_settings(smtp)
+                if smtp.app_password:
+                    st.success("✅ Paramètres Gmail sauvegardés avec succès !")
                 else:
                     st.warning("⚠️ Compte enregistré en mode déconnecté (mot de passe vide).")
                 time.sleep(1)
@@ -1394,7 +1403,8 @@ with tab7:
             if st.button("🔍 Tester la connexion", use_container_width=True):
                 smtp.sender_name = cfg_sender_name
                 smtp.sender_email = cfg_sender_email
-                smtp.app_password = cfg_app_pwd
+                if cfg_app_pwd.strip():
+                    smtp.app_password = cfg_app_pwd.strip()
                 save_smtp_settings(smtp)
                 res_test = test_smtp_connection(smtp)
                 if res_test["success"]:
@@ -1410,9 +1420,17 @@ with tab7:
         > - Les modèles `gemini-2.0-flash` et `gemini-2.5-flash` offrent d'excellentes performances de génération.
         """)
         
-        cfg_api_key = st.text_input("Clé API (Gemini / OpenAI / Groq / DeepSeek)", value=llm.api_key, type="password")
+        api_placeholder = "•••••••••••••••••••••••••••••••• (Clé API active)" if llm.api_key else "Ex: AIzaSy..."
+        cfg_api_key = st.text_input(
+            "Clé API (Gemini / OpenAI / Groq / DeepSeek)",
+            value="",
+            type="password",
+            placeholder=api_placeholder,
+            help="Laissez vide pour conserver la clé API actuelle."
+        )
         
         if st.button("💾 Sauvegarder la clé API", use_container_width=True):
-            llm.api_key = cfg_api_key
+            if cfg_api_key.strip():
+                llm.api_key = cfg_api_key.strip()
             save_llm_settings(llm)
             st.success("Clé API enregistrée avec succès !")
