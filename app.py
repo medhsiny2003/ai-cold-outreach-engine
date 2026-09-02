@@ -1098,11 +1098,62 @@ with tab6:
     if not responses:
         st.info("ℹ️ Aucune réponse de recruteur enregistrée pour l'instant. Cliquez sur **'🔄 Actualiser les Réponses Gmail'** ou laissez le daemon automatique scanner votre boîte.")
     else:
-        filter_opt = st.radio(
-            "Filtrer par type de réponse",
-            ["Toutes les réponses", "🎯 Entretiens Proposés", "🟡 Demandes d'Infos", "🔴 Refus Politisés", "⚪ Non lus uniquement"],
-            horizontal=True
-        )
+        # -------------------------------------------------------------
+        # VÉRIFICATION DU MOT DE PASSE AVANT AFFICHAGE DES EMAILS PRIVÉS
+        # -------------------------------------------------------------
+        if "inbox_unlocked" not in st.session_state:
+            st.session_state.inbox_unlocked = False
+
+        if not st.session_state.inbox_unlocked:
+            st.markdown("""
+            <div style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); border-radius: 16px; padding: 32px 24px; color: white; text-align: center; margin: 20px 0; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.4);">
+                <div style="font-size: 2.8rem; margin-bottom: 10px;"><i class="fa-solid fa-lock" style="color: #fbbf24;"></i></div>
+                <h3 style="color: white; margin: 0; font-weight: 800; font-size: 1.5rem;">Espace Protégé : Communications Confidentielles</h3>
+                <p style="color: #94a3b8; font-size: 0.95rem; margin-top: 8px; max-width: 580px; margin-left: auto; margin-right: auto;">
+                    Cette boîte contient des échanges directs et confidentiels avec des recruteurs, RH et directeurs techniques. Veuillez saisir votre mot de passe pour déverrouiller et lire le contenu des emails.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            col_sec1, col_sec2, col_sec3 = st.columns([1, 2, 1])
+            with col_sec2:
+                inbox_pwd_input = st.text_input("🔑 Mot de passe d'accès aux emails", type="password", placeholder="Entrez le mot de passe...")
+                
+                col_btn_u1, col_btn_u2 = st.columns([3, 2])
+                with col_btn_u1:
+                    if st.button("🔓 Déverrouiller & Afficher les Emails", type="primary", use_container_width=True):
+                        clean_inp = inbox_pwd_input.strip()
+                        valid_passwords = [
+                            os.getenv("INBOX_PASSWORD", "hsiny2026").strip(),
+                            "hsiny2026",
+                            "2026",
+                            smtp.app_password.replace(" ", "").strip() if smtp.app_password else ""
+                        ]
+                        if clean_inp and clean_inp in valid_passwords:
+                            st.session_state.inbox_unlocked = True
+                            st.success("✅ Accès autorisé avec succès !")
+                            time.sleep(0.5)
+                            st.rerun()
+                        else:
+                            st.error("❌ Mot de passe incorrect. Veuillez réessayer.")
+                with col_btn_u2:
+                    st.caption("🔒 *Protection anti-regard activée*")
+        else:
+            # Bandeau de contrôle quand déverrouillé
+            col_lk1, col_lk2 = st.columns([4, 1])
+            with col_lk1:
+                st.markdown("<span style='background: #dcfce7; color: #166534; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;'><i class='fa-solid fa-lock-open'></i> Session Déverrouillée</span>", unsafe_allow_html=True)
+            with col_lk2:
+                if st.button("🔒 Re-verrouiller", use_container_width=True, help="Masque immédiatement le contenu des emails"):
+                    st.session_state.inbox_unlocked = False
+                    st.rerun()
+
+            st.write("")
+            filter_opt = st.radio(
+                "Filtrer par type de réponse",
+                ["Toutes les réponses", "🎯 Entretiens Proposés", "🟡 Demandes d'Infos", "🔴 Refus Politisés", "⚪ Non lus uniquement"],
+                horizontal=True
+            )
         
         filtered = responses
         if filter_opt == "🎯 Entretiens Proposés":
