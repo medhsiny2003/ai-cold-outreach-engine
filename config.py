@@ -138,4 +138,4 @@ def is_francophone(country_or_location: str) -> bool:
             return True
     return False
 
-MASTER_SECURITY_PIN: str = os.getenv("SECURITY_PIN", "19748403")
+MASTER_SECURITY_PIN: str = os.getenv("SECURITY_PIN", "")

@@ -299,7 +299,7 @@ with st.sidebar:
 
     st.divider()
     st.markdown("### <i class='fa-solid fa-shield-halved' style='color:#0F4C81;'></i> Sécurité Système", unsafe_allow_html=True)
-    st.markdown("<span style='background:#e0f2fe; color:#0369a1; padding:4px 10px; border-radius:10px; font-weight:700; font-size:0.80rem;'>🔒 Code PIN : 19748403</span>", unsafe_allow_html=True)
+    st.markdown("<span style='background:#f1f5f9; color:#334155; padding:5px 12px; border-radius:10px; font-weight:700; font-size:0.82rem;'><i class='fa-solid fa-lock'></i> Protection PIN Active</span>", unsafe_allow_html=True)
 
     st.divider()
     
@@ -329,90 +329,87 @@ conn_badge = """<span class="hero-badge" style="background: rgba(16, 185, 129, 0
 
 st.markdown(f"""
 <div class="hero-banner">
-    <div>
-        <div class="hero-title">
-            <i class="fa-solid fa-bolt-lightning" style="color: #FBBF24;"></i>
-            <span>AI Cold Outreach Engine Pro</span>
-        </div>
-        <div class="hero-subtitle">Plateforme Haute-Délivrabilité & Prospection Intelligente pour Stage PFE | <b>Mohammed HSINY</b> (FST Mohammedia)</div>
-    </div>
-    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <span class="hero-badge"><i class="fa-solid fa-shield-halved"></i> Audit RFC 3464</span>
-        <span class="hero-badge"><i class="fa-solid fa-key"></i> Code PIN 19748403</span>
-        {conn_badge}
-    </div>
+<div>
+<div class="hero-title">
+<i class="fa-solid fa-bolt-lightning" style="color: #FBBF24;"></i>
+<span>AI Cold Outreach Engine Pro</span>
+</div>
+<div class="hero-subtitle">Plateforme Haute-Délivrabilité & Prospection Intelligente pour Stage PFE | <b>Mohammed HSINY</b> (FST Mohammedia)</div>
+</div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+<span class="hero-badge"><i class="fa-solid fa-shield-halved"></i> Audit RFC 3464</span>
+<span class="hero-badge"><i class="fa-solid fa-lock"></i> Session Sécurisée</span>
+{conn_badge}
+</div>
 </div>
 """, unsafe_allow_html=True)
 
-# Dressed-Up Luxury KPI Cards Row
-st.markdown(f"""
+# Dressed-Up Luxury KPI Cards Row (Flush Left to prevent Markdown Code Block Conversion)
+kpi_html = f"""
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 26px;">
-    <div class="pro-kpi-card" style="border-top: 4px solid #0F4C81;">
-        <div class="kpi-header-row">
-            <div class="kpi-icon-box" style="background: #EFF6FF; color: #0F4C81;">
-                <i class="fa-solid fa-users"></i>
-            </div>
-            <span class="kpi-tag" style="background: #DBEAFE; color: #1E40AF;">Base Data</span>
-        </div>
-        <div>
-            <div class="kpi-title">Total Base</div>
-            <div class="kpi-value" style="color: #0F4C81;">{total_contacts}</div>
-        </div>
-    </div>
-    
-    <div class="pro-kpi-card" style="border-top: 4px solid #059669;">
-        <div class="kpi-header-row">
-            <div class="kpi-icon-box" style="background: #F0FDF4; color: #059669;">
-                <i class="fa-solid fa-paper-plane"></i>
-            </div>
-            <span class="kpi-tag" style="background: #DCFCE7; color: #166534;">100% Réels</span>
-        </div>
-        <div>
-            <div class="kpi-title">Délivrés avec Succès</div>
-            <div class="kpi-value" style="color: #059669;">{sent_count}</div>
-        </div>
-    </div>
-    
-    <div class="pro-kpi-card" style="border-top: 4px solid #7C3AED;">
-        <div class="kpi-header-row">
-            <div class="kpi-icon-box" style="background: #FDF4FF; color: #7C3AED;">
-                <i class="fa-solid fa-comments"></i>
-            </div>
-            <span class="kpi-tag" style="background: #F3E8FF; color: #6B21A8;">IA Qualifiée</span>
-        </div>
-        <div>
-            <div class="kpi-title">Réponses Recruteurs</div>
-            <div class="kpi-value" style="color: #7C3AED;">{replied_count}</div>
-        </div>
-    </div>
-    
-    <div class="pro-kpi-card" style="border-top: 4px solid #DC2626;">
-        <div class="kpi-header-row">
-            <div class="kpi-icon-box" style="background: #FEF2F2; color: #DC2626;">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-            </div>
-            <span class="kpi-tag" style="background: #FEE2E2; color: #991B1B;">RFC 3464 DSN</span>
-        </div>
-        <div>
-            <div class="kpi-title">Rejetés (Bounces)</div>
-            <div class="kpi-value" style="color: #DC2626;">{bounced_count}</div>
-        </div>
-    </div>
-    
-    <div class="pro-kpi-card" style="border-top: 4px solid #D97706;">
-        <div class="kpi-header-row">
-            <div class="kpi-icon-box" style="background: #FFFBEB; color: #D97706;">
-                <i class="fa-solid fa-hourglass-half"></i>
-            </div>
-            <span class="kpi-tag" style="background: #FEF3C7; color: #92400E;">En File</span>
-        </div>
-        <div>
-            <div class="kpi-title">En Attente d'Envoi</div>
-            <div class="kpi-value" style="color: #D97706;">{approved_waiting_count}</div>
-        </div>
-    </div>
+<div class="pro-kpi-card" style="border-top: 4px solid #0F4C81;">
+<div class="kpi-header-row">
+<div class="kpi-icon-box" style="background: #EFF6FF; color: #0F4C81;">
+<i class="fa-solid fa-users"></i>
 </div>
-""", unsafe_allow_html=True)
+<span class="kpi-tag" style="background: #DBEAFE; color: #1E40AF;">Base Data</span>
+</div>
+<div>
+<div class="kpi-title">Total Base</div>
+<div class="kpi-value" style="color: #0F4C81;">{total_contacts}</div>
+</div>
+</div>
+<div class="pro-kpi-card" style="border-top: 4px solid #059669;">
+<div class="kpi-header-row">
+<div class="kpi-icon-box" style="background: #F0FDF4; color: #059669;">
+<i class="fa-solid fa-paper-plane"></i>
+</div>
+<span class="kpi-tag" style="background: #DCFCE7; color: #166534;">100% Réels</span>
+</div>
+<div>
+<div class="kpi-title">Délivrés avec Succès</div>
+<div class="kpi-value" style="color: #059669;">{sent_count}</div>
+</div>
+</div>
+<div class="pro-kpi-card" style="border-top: 4px solid #7C3AED;">
+<div class="kpi-header-row">
+<div class="kpi-icon-box" style="background: #FDF4FF; color: #7C3AED;">
+<i class="fa-solid fa-comments"></i>
+</div>
+<span class="kpi-tag" style="background: #F3E8FF; color: #6B21A8;">IA Qualifiée</span>
+</div>
+<div>
+<div class="kpi-title">Réponses Recruteurs</div>
+<div class="kpi-value" style="color: #7C3AED;">{replied_count}</div>
+</div>
+</div>
+<div class="pro-kpi-card" style="border-top: 4px solid #DC2626;">
+<div class="kpi-header-row">
+<div class="kpi-icon-box" style="background: #FEF2F2; color: #DC2626;">
+<i class="fa-solid fa-triangle-exclamation"></i>
+</div>
+<span class="kpi-tag" style="background: #FEE2E2; color: #991B1B;">RFC 3464 DSN</span>
+</div>
+<div>
+<div class="kpi-title">Rejetés (Bounces)</div>
+<div class="kpi-value" style="color: #DC2626;">{bounced_count}</div>
+</div>
+</div>
+<div class="pro-kpi-card" style="border-top: 4px solid #D97706;">
+<div class="kpi-header-row">
+<div class="kpi-icon-box" style="background: #FFFBEB; color: #D97706;">
+<i class="fa-solid fa-hourglass-half"></i>
+</div>
+<span class="kpi-tag" style="background: #FEF3C7; color: #92400E;">En File</span>
+</div>
+<div>
+<div class="kpi-title">En Attente d'Envoi</div>
+<div class="kpi-value" style="color: #D97706;">{approved_waiting_count}</div>
+</div>
+</div>
+</div>
+"""
+st.markdown(kpi_html, unsafe_allow_html=True)
 
 # Navigation Tabs with Icons
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
@@ -1031,7 +1028,7 @@ mohammedhsiny2@gmail.com"""
                         <div>
                             <div style="font-size: 1.25rem; font-weight: 800;">🔒 Autorisation de Sécurité Requise pour le Lancement d'Envoi</div>
                             <div style="font-size: 0.92rem; color: #CBD5E1; margin-top: 4px;">
-                                Pour sécuriser vos expéditions et éviter tout départ accidentel, veuillez saisir votre <b>Code PIN de Sécurité (19748403)</b> pour déverrouiller et activer le moteur d'envoi.
+                                Pour sécuriser vos expéditions et éviter tout départ accidentel, veuillez saisir votre <b>Code PIN Secret</b> pour déverrouiller et activer le moteur d'envoi.
                             </div>
                         </div>
                     </div>
@@ -1040,21 +1037,21 @@ mohammedhsiny2@gmail.com"""
 
                 col_pin_1, col_pin_2, col_pin_3 = st.columns([1, 2, 1])
                 with col_pin_2:
-                    dispatch_pin_input = st.text_input("🔑 Code PIN de Sécurité d'Envoi (19748403)", type="password", placeholder="Saisissez le code PIN...")
+                    dispatch_pin_input = st.text_input("🔑 Code PIN Secret d'Envoi", type="password", placeholder="Saisissez votre code PIN secret...")
                     if st.button("🔓 Déverrouiller & Activer le Moteur d'Envoi", type="primary", use_container_width=True):
                         clean_pin = dispatch_pin_input.strip()
-                        valid_pins = ["19748403", os.getenv("SECURITY_PIN", "19748403").strip()]
-                        if clean_pin in valid_pins:
+                        valid_pins = [os.getenv("SECURITY_PIN", "").strip(), "19748403"]
+                        if clean_pin and clean_pin in valid_pins:
                             st.session_state.dispatch_authorized = True
-                            st.success("✅ Code PIN 19748403 validé avec succès ! Moteur d'envoi activé.")
+                            st.success("✅ Code PIN validé avec succès ! Moteur d'envoi activé.")
                             time.sleep(0.5)
                             st.rerun()
                         else:
-                            st.error("❌ Code PIN incorrect. Veuillez saisir le code de sécurité 19748403.")
+                            st.error("❌ Code PIN incorrect. Veuillez réessayer.")
             else:
                 col_auth_d1, col_auth_d2 = st.columns([4, 1])
                 with col_auth_d1:
-                    st.markdown("<span style='background: #DCFCE7; color: #166534; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;'><i class='fa-solid fa-shield-check'></i> Moteur d'Envoi Déverrouillé (Code 19748403 Validé)</span>", unsafe_allow_html=True)
+                    st.markdown("<span style='background: #DCFCE7; color: #166534; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;'><i class='fa-solid fa-shield-check'></i> Moteur d'Envoi Déverrouillé</span>", unsafe_allow_html=True)
                 with col_auth_d2:
                     if st.button("🔒 Verrouiller", key="lock_dispatch_btn", use_container_width=True, help="Re-verrouille le bouton d'envoi"):
                         st.session_state.dispatch_authorized = False
@@ -1227,21 +1224,21 @@ with tab6:
                         clean_inp = inbox_pwd_input.strip()
                         valid_passwords = [
                             "19748403",
-                            os.getenv("SECURITY_PIN", "19748403").strip(),
-                            os.getenv("INBOX_PASSWORD", "19748403").strip(),
+                            os.getenv("SECURITY_PIN", "").strip(),
+                            os.getenv("INBOX_PASSWORD", "").strip(),
                             "hsiny2026",
                             "2026",
                             smtp.app_password.replace(" ", "").strip() if smtp.app_password else ""
                         ]
                         if clean_inp and clean_inp in valid_passwords:
                             st.session_state.inbox_unlocked = True
-                            st.success("✅ Accès autorisé avec succès (Code 19748403 validé) !")
+                            st.success("✅ Accès autorisé avec succès !")
                             time.sleep(0.5)
                             st.rerun()
                         else:
-                            st.error("❌ Mot de passe incorrect. Veuillez entrer le code de sécurité 19748403.")
+                            st.error("❌ Mot de passe incorrect. Veuillez réessayer.")
                 with col_btn_u2:
-                    st.caption("🔒 *Protection anti-regard (Code 19748403)*")
+                    st.caption("🔒 *Protection anti-regard activée*")
         else:
             # Bandeau de contrôle quand déverrouillé
             col_lk1, col_lk2 = st.columns([4, 1])
