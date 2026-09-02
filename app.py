@@ -88,128 +88,167 @@ st.markdown("""
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+    :root {
+        --primary-blue: #0F4C81;
+        --royal-indigo: #1E40AF;
+        --electric-blue: #2563EB;
+        --slate-dark: #0F172A;
+        --slate-card: #FFFFFF;
+    }
     html, body, [class*="css"] {
         font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     }
     
-    /* Luxury SaaS Top Segmented Navigation Tabs */
+    /* Top Professional Segmented Navigation Navbar */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 6px;
-        background: #f8fafc;
-        padding: 6px;
-        border-radius: 14px;
+        gap: 8px;
+        background: #ffffff;
+        padding: 8px 10px;
+        border-radius: 16px;
         border: 1px solid #e2e8f0;
-        box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+        box-shadow: 0 4px 20px -2px rgba(15, 76, 129, 0.08);
         display: flex;
         justify-content: space-between;
-        margin-bottom: 24px;
+        margin-bottom: 28px;
     }
     .stTabs [data-baseweb="tab"] {
-        height: 46px;
+        height: 48px;
         white-space: pre-wrap;
         background-color: transparent;
-        border-radius: 10px;
+        border-radius: 12px;
         font-weight: 600;
-        font-size: 0.90rem;
+        font-size: 0.92rem;
         color: #475569;
-        padding: 8px 14px;
+        padding: 10px 16px;
         border: none !important;
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .stTabs [data-baseweb="tab"]:hover {
         background-color: #f1f5f9;
-        color: #0f172a;
-        transform: translateY(-1px);
+        color: #0F4C81;
+        transform: translateY(-2px);
     }
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
+        background: linear-gradient(135deg, #0F4C81 0%, #1E40AF 100%) !important;
         color: #ffffff !important;
         font-weight: 700 !important;
-        box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
-        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(15, 76, 129, 0.35) !important;
+        transform: translateY(-2px);
     }
     .stTabs [data-baseweb="tab-highlight"] {
         display: none !important;
     }
 
+    /* Enterprise Hero Banner */
     .hero-banner {
-        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
-        border-radius: 16px;
-        padding: 26px 32px;
+        background: linear-gradient(135deg, #0B192C 0%, #0F4C81 50%, #1E3E62 100%);
+        border-radius: 18px;
+        padding: 28px 36px;
         color: white;
         margin-bottom: 24px;
-        box-shadow: 0 12px 30px -10px rgba(49, 46, 129, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 14px 35px -10px rgba(15, 76, 129, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.12);
         display: flex;
         justify-content: space-between;
         align-items: center;
         flex-wrap: wrap;
-        gap: 16px;
+        gap: 18px;
     }
     .hero-title {
-        font-size: 2rem;
+        font-size: 2.1rem;
         font-weight: 800;
         letter-spacing: -0.5px;
-        background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+        background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
     .hero-subtitle {
-        color: #94a3b8;
-        font-size: 0.95rem;
-        margin-top: 6px;
+        color: #CBD5E1;
+        font-size: 0.98rem;
+        margin-top: 8px;
         font-weight: 400;
     }
     .hero-badge {
-        background: rgba(99, 102, 241, 0.2);
-        color: #c7d2fe;
-        border: 1px solid rgba(165, 180, 252, 0.3);
-        padding: 6px 14px;
+        background: rgba(255, 255, 255, 0.12);
+        color: #E2E8F0;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        padding: 7px 16px;
         border-radius: 30px;
-        font-size: 0.82rem;
+        font-size: 0.84rem;
         font-weight: 700;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
+        backdrop-filter: blur(8px);
     }
+
+    /* Luxury Glassmorphic KPI Cards */
     .pro-kpi-card {
         background: #ffffff;
-        border-radius: 14px;
-        padding: 18px 20px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border-radius: 16px;
+        padding: 20px 22px;
+        border: 1px solid #E2E8F0;
+        box-shadow: 0 4px 16px -2px rgba(15, 76, 129, 0.06);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         display: flex;
-        align-items: center;
-        gap: 16px;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+    }
+    .pro-kpi-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
     }
     .pro-kpi-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.08);
+        transform: translateY(-3px);
+        box-shadow: 0 12px 28px -6px rgba(15, 76, 129, 0.12);
+        border-color: #CBD5E1;
+    }
+    .kpi-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
     }
     .kpi-icon-box {
-        width: 48px;
-        height: 48px;
+        width: 46px;
+        height: 46px;
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.3rem;
+        font-size: 1.35rem;
+    }
+    .kpi-tag {
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 12px;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
     }
     .kpi-title {
-        font-size: 0.78rem;
+        font-size: 0.80rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        color: #64748b;
+        color: #64748B;
+        margin-bottom: 4px;
     }
     .kpi-value {
-        font-size: 1.75rem;
+        font-size: 2rem;
         font-weight: 800;
-        color: #0f172a;
-        line-height: 1.2;
-        margin-top: 2px;
+        color: #0F172A;
+        line-height: 1.1;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -236,7 +275,7 @@ replied_count = sum(1 for c in contacts if c.get("status") == "replied")
 
 CANDIDATE_PHOTO = BASE_DIR / "data" / "assets" / "mohammed_hsiny.png"
 
-# Sidebar with Candidate Portrait Photo
+# Sidebar with Candidate Portrait Photo & Security Badge
 with st.sidebar:
     if CANDIDATE_PHOTO.is_file():
         st.image(str(CANDIDATE_PHOTO), use_container_width=True)
@@ -245,23 +284,27 @@ with st.sidebar:
     else:
         st.image("https://img.icons8.com/fluency/96/artificial-intelligence.png", width=64)
         
-    st.markdown(f"### <i class='fa-solid fa-user-tie' style='color:#6366f1;'></i> **{profile.name}**", unsafe_allow_html=True)
+    st.markdown(f"### <i class='fa-solid fa-user-tie' style='color:#0F4C81;'></i> **{profile.name}**", unsafe_allow_html=True)
     st.caption("🏆 **Président Club RoboThings** | FSTM")
     st.caption(f"🎓 {profile.title_fr}")
     
     is_connected = bool(smtp.app_password and smtp.app_password.strip())
     
     st.divider()
-    st.markdown("### <i class='fa-solid fa-signal' style='color:#6366f1;'></i> État de Connexion", unsafe_allow_html=True)
+    st.markdown("### <i class='fa-solid fa-signal' style='color:#0F4C81;'></i> État de Connexion", unsafe_allow_html=True)
     if is_connected:
-        st.markdown("<span style='background:#dcfce7; color:#166534; padding:4px 10px; border-radius:12px; font-weight:700; font-size:0.82rem;'>🟢 Gmail Connecté</span>", unsafe_allow_html=True)
+        st.markdown("<span style='background:#dcfce7; color:#166534; padding:5px 12px; border-radius:14px; font-weight:700; font-size:0.84rem;'><i class='fa-solid fa-circle-check'></i> Gmail Connecté</span>", unsafe_allow_html=True)
     else:
-        st.markdown("<span style='background:#fee2e2; color:#991b1b; padding:4px 10px; border-radius:12px; font-weight:700; font-size:0.82rem;'>🔴 Compte Déconnecté (Pause)</span>", unsafe_allow_html=True)
+        st.markdown("<span style='background:#fee2e2; color:#991b1b; padding:5px 12px; border-radius:14px; font-weight:700; font-size:0.84rem;'><i class='fa-solid fa-lock'></i> Déconnecté (Pause)</span>", unsafe_allow_html=True)
+
+    st.divider()
+    st.markdown("### <i class='fa-solid fa-shield-halved' style='color:#0F4C81;'></i> Sécurité Système", unsafe_allow_html=True)
+    st.markdown("<span style='background:#e0f2fe; color:#0369a1; padding:4px 10px; border-radius:10px; font-weight:700; font-size:0.80rem;'>🔒 Code PIN : 19748403</span>", unsafe_allow_html=True)
 
     st.divider()
     
     # Active Attachments Check
-    st.markdown("### <i class='fa-solid fa-paperclip' style='color:#3b82f6;'></i> Documents Attachés", unsafe_allow_html=True)
+    st.markdown("### <i class='fa-solid fa-paperclip' style='color:#0F4C81;'></i> Documents Attachés", unsafe_allow_html=True)
     cv_fr = UPLOADS_DIR / "CV_Mohammed_HSINY_FR.pdf"
     cv_en = UPLOADS_DIR / "CV_Mohammed_HSINY_EN.pdf"
     portfolio_pdf = UPLOADS_DIR / "Portfolio_Mohammed_HSINY.pdf"
@@ -274,82 +317,98 @@ with st.sidebar:
         st.success("📁 `Portfolio_Mohammed_HSINY.pdf` (Actif)")
         
     st.divider()
-    st.markdown("### <i class='fa-solid fa-link' style='color:#8b5cf6;'></i> Liens Officiels", unsafe_allow_html=True)
+    st.markdown("### <i class='fa-solid fa-link' style='color:#0F4C81;'></i> Liens Officiels", unsafe_allow_html=True)
     st.markdown(f"- [🌐 **Portfolio en ligne**]({profile.portfolio_url})")
     st.markdown(f"- [💼 **Profil LinkedIn**]({profile.linkedin_url})")
     st.markdown(f"- ✉️ `{profile.email}`")
     st.markdown(f"- 📱 `{profile.phone}`")
-    
-    st.divider()
-    st.markdown("### <i class='fa-solid fa-chart-simple' style='color:#10b981;'></i> Suivi en Temps Réel", unsafe_allow_html=True)
-    st.markdown(f"- 🟢 **Délivrés :** `{sent_count}`")
-    st.markdown(f"- 💬 **Réponses reçues :** `{replied_count}`")
-    st.markdown(f"- 🔴 **Rejetés (Bounces) :** `{bounced_count}`")
-    st.markdown(f"- ⏳ **En attente :** `{approved_waiting_count}`")
 
-# Main Hero Banner with Pro Styling & Icons
+# Main Hero Banner with Pro Styling & Midnight Electric Gradient
 daemon_status = BackgroundSyncDaemon.last_status_message
-conn_badge = """<span class="hero-badge" style="background: rgba(16, 185, 129, 0.2); color: #a7f3d0; border-color: rgba(52, 211, 153, 0.3);"><i class="fa-solid fa-circle-check"></i> Système Connecté</span>""" if is_connected else """<span class="hero-badge" style="background: rgba(239, 68, 68, 0.25); color: #fca5a5; border-color: rgba(248, 113, 113, 0.4);"><i class="fa-solid fa-lock"></i> Compte Déconnecté (Pause)</span>"""
+conn_badge = """<span class="hero-badge" style="background: rgba(16, 185, 129, 0.25); color: #A7F3D0; border-color: rgba(52, 211, 153, 0.4);"><i class="fa-solid fa-circle-check"></i> Gmail Connecté</span>""" if is_connected else """<span class="hero-badge" style="background: rgba(239, 68, 68, 0.25); color: #FCA5A5; border-color: rgba(248, 113, 113, 0.4);"><i class="fa-solid fa-lock"></i> Compte en Pause</span>"""
 
 st.markdown(f"""
 <div class="hero-banner">
     <div>
-        <div class="hero-title"><i class="fa-solid fa-bolt-lightning" style="color: #fbbf24; margin-right: 10px;"></i>AI Cold Outreach Engine Pro</div>
-        <div class="hero-subtitle">Plateforme d'automatisation & prospection intelligente pour Stage PFE | Mohammed HSINY (FST Mohammedia)</div>
+        <div class="hero-title">
+            <i class="fa-solid fa-bolt-lightning" style="color: #FBBF24;"></i>
+            <span>AI Cold Outreach Engine Pro</span>
+        </div>
+        <div class="hero-subtitle">Plateforme Haute-Délivrabilité & Prospection Intelligente pour Stage PFE | <b>Mohammed HSINY</b> (FST Mohammedia)</div>
     </div>
     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <span class="hero-badge"><i class="fa-solid fa-shield-halved"></i> Audit RFC 3464 Google</span>
+        <span class="hero-badge"><i class="fa-solid fa-shield-halved"></i> Audit RFC 3464</span>
+        <span class="hero-badge"><i class="fa-solid fa-key"></i> Code PIN 19748403</span>
         {conn_badge}
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# Top Metrics Row with Pro FontAwesome Icons
+# Dressed-Up Luxury KPI Cards Row
 st.markdown(f"""
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 24px;">
-    <div class="pro-kpi-card">
-        <div class="kpi-icon-box" style="background: #eff6ff; color: #2563eb;">
-            <i class="fa-solid fa-users"></i>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 26px;">
+    <div class="pro-kpi-card" style="border-top: 4px solid #0F4C81;">
+        <div class="kpi-header-row">
+            <div class="kpi-icon-box" style="background: #EFF6FF; color: #0F4C81;">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <span class="kpi-tag" style="background: #DBEAFE; color: #1E40AF;">Base Data</span>
         </div>
         <div>
             <div class="kpi-title">Total Base</div>
-            <div class="kpi-value">{total_contacts}</div>
+            <div class="kpi-value" style="color: #0F4C81;">{total_contacts}</div>
         </div>
     </div>
-    <div class="pro-kpi-card">
-        <div class="kpi-icon-box" style="background: #f0fdf4; color: #16a34a;">
-            <i class="fa-solid fa-paper-plane"></i>
+    
+    <div class="pro-kpi-card" style="border-top: 4px solid #059669;">
+        <div class="kpi-header-row">
+            <div class="kpi-icon-box" style="background: #F0FDF4; color: #059669;">
+                <i class="fa-solid fa-paper-plane"></i>
+            </div>
+            <span class="kpi-tag" style="background: #DCFCE7; color: #166534;">100% Réels</span>
         </div>
         <div>
             <div class="kpi-title">Délivrés avec Succès</div>
-            <div class="kpi-value" style="color: #16a34a;">{sent_count}</div>
+            <div class="kpi-value" style="color: #059669;">{sent_count}</div>
         </div>
     </div>
-    <div class="pro-kpi-card">
-        <div class="kpi-icon-box" style="background: #fdf4ff; color: #9333ea;">
-            <i class="fa-solid fa-comments"></i>
+    
+    <div class="pro-kpi-card" style="border-top: 4px solid #7C3AED;">
+        <div class="kpi-header-row">
+            <div class="kpi-icon-box" style="background: #FDF4FF; color: #7C3AED;">
+                <i class="fa-solid fa-comments"></i>
+            </div>
+            <span class="kpi-tag" style="background: #F3E8FF; color: #6B21A8;">IA Qualifiée</span>
         </div>
         <div>
             <div class="kpi-title">Réponses Recruteurs</div>
-            <div class="kpi-value" style="color: #9333ea;">{replied_count}</div>
+            <div class="kpi-value" style="color: #7C3AED;">{replied_count}</div>
         </div>
     </div>
-    <div class="pro-kpi-card">
-        <div class="kpi-icon-box" style="background: #fef2f2; color: #dc2626;">
-            <i class="fa-solid fa-triangle-exclamation"></i>
+    
+    <div class="pro-kpi-card" style="border-top: 4px solid #DC2626;">
+        <div class="kpi-header-row">
+            <div class="kpi-icon-box" style="background: #FEF2F2; color: #DC2626;">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <span class="kpi-tag" style="background: #FEE2E2; color: #991B1B;">RFC 3464 DSN</span>
         </div>
         <div>
-            <div class="kpi-title">Rejetés (Bounces DSN)</div>
-            <div class="kpi-value" style="color: #dc2626;">{bounced_count}</div>
+            <div class="kpi-title">Rejetés (Bounces)</div>
+            <div class="kpi-value" style="color: #DC2626;">{bounced_count}</div>
         </div>
     </div>
-    <div class="pro-kpi-card">
-        <div class="kpi-icon-box" style="background: #fffbeb; color: #d97706;">
-            <i class="fa-solid fa-hourglass-half"></i>
+    
+    <div class="pro-kpi-card" style="border-top: 4px solid #D97706;">
+        <div class="kpi-header-row">
+            <div class="kpi-icon-box" style="background: #FFFBEB; color: #D97706;">
+                <i class="fa-solid fa-hourglass-half"></i>
+            </div>
+            <span class="kpi-tag" style="background: #FEF3C7; color: #92400E;">En File</span>
         </div>
         <div>
-            <div class="kpi-title">En Attente</div>
-            <div class="kpi-value" style="color: #d97706;">{approved_waiting_count}</div>
+            <div class="kpi-title">En Attente d'Envoi</div>
+            <div class="kpi-value" style="color: #D97706;">{approved_waiting_count}</div>
         </div>
     </div>
 </div>
@@ -958,42 +1017,85 @@ mohammedhsiny2@gmail.com"""
             else:
                 st.info("Aucun email n'a le statut 'Approuvé'. Veuillez valider les emails dans l'onglet 'Revue & Édition'.")
         else:
-            st.markdown(f"**📋 Liste des {len(approved_contacts)} candidatures prêtes à être envoyées en tâche de fond :**")
-            st.dataframe(pd.DataFrame(approved_contacts)[["name", "email", "company", "role", "subject"]], use_container_width=True)
+            # ---------------------------------------------------------
+            # CODE DE SÉCURITÉ REQUIS AVANT TOUT LANCEMENT D'ENVOI (19748403)
+            # ---------------------------------------------------------
+            if "dispatch_authorized" not in st.session_state:
+                st.session_state.dispatch_authorized = False
 
-            col_p1, col_p2, col_p3 = st.columns(3)
-            with col_p1:
-                batch_limit = st.number_input("Limite du lot d'envoi", min_value=1, max_value=len(approved_contacts), value=min(len(approved_contacts), 50))
-            with col_p2:
-                delay_min = st.slider("Délai aléatoire minimum (sec)", min_value=10, max_value=60, value=35)
-            with col_p3:
-                delay_max = st.slider("Délai aléatoire maximum (sec)", min_value=30, max_value=120, value=65)
+            if not st.session_state.dispatch_authorized:
+                st.markdown("""
+                <div style="background: linear-gradient(135deg, #0B192C 0%, #0F4C81 100%); border-radius: 14px; padding: 24px 28px; color: white; margin-bottom: 22px; box-shadow: 0 8px 24px rgba(15, 76, 129, 0.25); border: 1px solid rgba(255, 255, 255, 0.15);">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="font-size: 2.4rem; color: #FBBF24;"><i class="fa-solid fa-shield-halved"></i></div>
+                        <div>
+                            <div style="font-size: 1.25rem; font-weight: 800;">🔒 Autorisation de Sécurité Requise pour le Lancement d'Envoi</div>
+                            <div style="font-size: 0.92rem; color: #CBD5E1; margin-top: 4px;">
+                                Pour sécuriser vos expéditions et éviter tout départ accidentel, veuillez saisir votre <b>Code PIN de Sécurité (19748403)</b> pour déverrouiller et activer le moteur d'envoi.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
-            st.markdown("""
-            > 🛡️ **Garantie Fonctionnement Continu :** Ce moteur démarre un processus de fond sur le serveur. Même si vous fermez cette fenêtre, l'envoi continuera automatiquement jusqu'à épuisement du lot configuré.
-            """)
-
-            btn_start_bg = st.button(
-                f"🚀 LANCER L'ENVOI AUTONOME EN ARRIÈRE-PLAN ({batch_limit} CONTACTS)",
-                type="primary",
-                use_container_width=True,
-                help="Démarre l'envoi en tâche de fond. Vous pouvez fermer votre navigateur."
-            )
-            if btn_start_bg:
-                if not smtp.app_password:
-                    st.error("Mot de passe d'application Gmail manquant. Rendez-vous dans l'onglet Paramètres.")
-                else:
-                    started = BackgroundDispatcher.start(
-                        batch_limit=int(batch_limit),
-                        min_delay=int(delay_min),
-                        max_delay=int(delay_max)
-                    )
-                    if started:
-                        st.success("🚀 Envoi autonome démarré en tâche de fond avec succès ! Vous pouvez fermer votre navigateur.")
-                        time.sleep(1)
+                col_pin_1, col_pin_2, col_pin_3 = st.columns([1, 2, 1])
+                with col_pin_2:
+                    dispatch_pin_input = st.text_input("🔑 Code PIN de Sécurité d'Envoi (19748403)", type="password", placeholder="Saisissez le code PIN...")
+                    if st.button("🔓 Déverrouiller & Activer le Moteur d'Envoi", type="primary", use_container_width=True):
+                        clean_pin = dispatch_pin_input.strip()
+                        valid_pins = ["19748403", os.getenv("SECURITY_PIN", "19748403").strip()]
+                        if clean_pin in valid_pins:
+                            st.session_state.dispatch_authorized = True
+                            st.success("✅ Code PIN 19748403 validé avec succès ! Moteur d'envoi activé.")
+                            time.sleep(0.5)
+                            st.rerun()
+                        else:
+                            st.error("❌ Code PIN incorrect. Veuillez saisir le code de sécurité 19748403.")
+            else:
+                col_auth_d1, col_auth_d2 = st.columns([4, 1])
+                with col_auth_d1:
+                    st.markdown("<span style='background: #DCFCE7; color: #166534; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;'><i class='fa-solid fa-shield-check'></i> Moteur d'Envoi Déverrouillé (Code 19748403 Validé)</span>", unsafe_allow_html=True)
+                with col_auth_d2:
+                    if st.button("🔒 Verrouiller", key="lock_dispatch_btn", use_container_width=True, help="Re-verrouille le bouton d'envoi"):
+                        st.session_state.dispatch_authorized = False
                         st.rerun()
+
+                st.markdown(f"**📋 Liste des {len(approved_contacts)} candidatures prêtes à être envoyées en tâche de fond :**")
+                st.dataframe(pd.DataFrame(approved_contacts)[["name", "email", "company", "role", "subject"]], use_container_width=True)
+
+                col_p1, col_p2, col_p3 = st.columns(3)
+                with col_p1:
+                    batch_limit = st.number_input("Limite du lot d'envoi", min_value=1, max_value=len(approved_contacts), value=min(len(approved_contacts), 50))
+                with col_p2:
+                    delay_min = st.slider("Délai aléatoire minimum (sec)", min_value=10, max_value=60, value=35)
+                with col_p3:
+                    delay_max = st.slider("Délai aléatoire maximum (sec)", min_value=30, max_value=120, value=65)
+
+                st.markdown("""
+                > 🛡️ **Garantie Fonctionnement Continu :** Ce moteur démarre un processus de fond sur le serveur. Même si vous fermez cette fenêtre, l'envoi continuera automatiquement jusqu'à épuisement du lot configuré.
+                """)
+
+                btn_start_bg = st.button(
+                    f"🚀 LANCER L'ENVOI AUTONOME EN ARRIÈRE-PLAN ({batch_limit} CONTACTS)",
+                    type="primary",
+                    use_container_width=True,
+                    help="Démarre l'envoi en tâche de fond. Vous pouvez fermer votre navigateur."
+                )
+                if btn_start_bg:
+                    if not smtp.app_password:
+                        st.error("Mot de passe d'application Gmail manquant. Rendez-vous dans l'onglet Paramètres.")
                     else:
-                        st.warning("Un envoi est déjà en cours d'exécution.")
+                        started = BackgroundDispatcher.start(
+                            batch_limit=int(batch_limit),
+                            min_delay=int(delay_min),
+                            max_delay=int(delay_max)
+                        )
+                        if started:
+                            st.success("🚀 Envoi autonome démarré en tâche de fond avec succès ! Vous pouvez fermer votre navigateur.")
+                            time.sleep(1)
+                            st.rerun()
+                        else:
+                            st.warning("Un envoi est déjà en cours d'exécution.")
 
     st.divider()
     
@@ -1124,20 +1226,22 @@ with tab6:
                     if st.button("🔓 Déverrouiller & Afficher les Emails", type="primary", use_container_width=True):
                         clean_inp = inbox_pwd_input.strip()
                         valid_passwords = [
-                            os.getenv("INBOX_PASSWORD", "hsiny2026").strip(),
+                            "19748403",
+                            os.getenv("SECURITY_PIN", "19748403").strip(),
+                            os.getenv("INBOX_PASSWORD", "19748403").strip(),
                             "hsiny2026",
                             "2026",
                             smtp.app_password.replace(" ", "").strip() if smtp.app_password else ""
                         ]
                         if clean_inp and clean_inp in valid_passwords:
                             st.session_state.inbox_unlocked = True
-                            st.success("✅ Accès autorisé avec succès !")
+                            st.success("✅ Accès autorisé avec succès (Code 19748403 validé) !")
                             time.sleep(0.5)
                             st.rerun()
                         else:
-                            st.error("❌ Mot de passe incorrect. Veuillez réessayer.")
+                            st.error("❌ Mot de passe incorrect. Veuillez entrer le code de sécurité 19748403.")
                 with col_btn_u2:
-                    st.caption("🔒 *Protection anti-regard activée*")
+                    st.caption("🔒 *Protection anti-regard (Code 19748403)*")
         else:
             # Bandeau de contrôle quand déverrouillé
             col_lk1, col_lk2 = st.columns([4, 1])
