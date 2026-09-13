@@ -107,19 +107,72 @@ async def call_openai_compatible_api(
         data = response.json()
         return data["choices"][0]["message"]["content"]
 
-def generate_fallback_template(contact: Dict[str, Any], profile: CandidateProfile, language: str) -> GeneratedEmail:
-    """Smart persona-based fallback template when offline or without API key."""
+from services.prompt_builder import (
+    build_system_prompt, 
+    build_user_prompt, 
+    determine_language, 
+    detect_best_theme_for_company, 
+    THEMES_CATALOG, 
+    WRITING_STYLES
+)
+
+def generate_fallback_template(
+    contact: Dict[str, Any], 
+    profile: CandidateProfile, 
+    language: str,
+    theme: str = "auto",
+    custom_instruction: str = ""
+) -> GeneratedEmail:
+    """Smart persona & theme-based fallback template when offline or without API key."""
     name = contact.get("name") or contact.get("nom") or ""
     first_name = contact.get("first_name") or contact.get("prenom") or (name.split()[0] if name else "")
     company = contact.get("company") or contact.get("entreprise") or contact.get("societe") or "votre entreprise"
     role = contact.get("role") or contact.get("poste") or ""
+    industry = contact.get("industry") or contact.get("secteur") or ""
     role_lower = role.lower()
     
-    is_hr = any(k in role_lower for k in ["recrut", "talent", "rh", "hr", "campus", "people", "ressources humaines", "acquisition"])
-    is_product = any(k in role_lower for k in ["produit", "product", "business", "bizdev", "commercial", "sales", "partenariat", "marketing"])
+    # Resolve Theme
+    effective_theme = theme
+    if theme == "auto":
+        effective_theme = detect_best_theme_for_company(company, role, industry)
+        
+    is_hr = any(k in role_lower for k in ["recrut", "talent", "rh", "hr", "campus", "people", "ressources humaines", "acquisition", "headhunter"])
+    is_product = any(k in role_lower for k in ["produit", "product", "business", "bizdev", "commercial", "sales", "partenariat", "marketing", "consultant"])
     is_ceo = any(k in role_lower for k in ["ceo", "fondateur", "founder", "directeur général", "general manager", "president", "vp", "gerant", "managing director"])
     is_rd = any(k in role_lower for k in ["r&d", "recherche", "architect", "lead", "cto", "direction technique", "system engineer", "systèmes critiques", "expert", "scientifique", "innovation"])
     
+    # Theme specific phrasing (FR)
+    if effective_theme == "solar_energy":
+        tech_intro_fr = "spécialisé en énergie solaire, photovoltaïque et gestion intelligente de l'énergie (dimensionnement PV, convertisseurs MPPT, micro-réseaux et modélisation Matlab/Simulink)"
+        comp_hook_fr = f"Je suis particulièrement attentif aux projets de transition énergétique et d'ingénierie solaire portés par {company}"
+        tech_intro_en = "specialized in solar PV, power converters, battery energy storage and microgrid modeling"
+        comp_hook_en = f"I am genuinely inspired by {company}'s leadership in clean energy and solar engineering"
+    elif effective_theme == "drones_robotics":
+        tech_intro_fr = "passionné par les systèmes embarqués, la robotique mobile et les drones autonomes (Président du Club RoboThings FSTM, pilotage autonome Pixhawk/PX4, ROS/ROS2, vision OpenCV)"
+        comp_hook_fr = f"Je suis très motivé par l'idée de rejoindre {company} et je suis sincèrement inspiré par vos innovations et votre expertise dans les systèmes aériens et autonomes"
+        tech_intro_en = "passionate about autonomous UAVs, flight controllers (Pixhawk/PX4), ROS, computer vision and President of the RoboThings Club"
+        comp_hook_en = f"I am deeply inspired by {company}'s pioneering work in autonomous robotics and aerospace systems"
+    elif effective_theme == "automation_scada":
+        tech_intro_fr = "spécialisé en automatisme industriel, contrôle commande et supervision SCADA (automates Siemens S7-1200/1500 TIA Portal, Schneider EcoStruxure, supervision WinCC, réseaux Profinet/Modbus)"
+        comp_hook_fr = f"Je suis très motivé par les projets d'automatisation, d'optimisation de procédés et d'Industrie 4.0 développés chez {company}"
+        tech_intro_en = "specialized in industrial automation, PLC programming (Siemens TIA Portal, Schneider) and SCADA systems"
+        comp_hook_en = f"I am impressed by {company}'s expertise in industrial automation and smart manufacturing"
+    elif effective_theme == "embedded_edge_ai":
+        tech_intro_fr = "spécialisé en systèmes embarqués temps réel et Edge AI (microcontrôleurs STM32/ESP32, traitement d'images sur Jetson Nano/Raspberry Pi avec OpenCV/YOLO, protocoles IoT)"
+        comp_hook_fr = f"Je suis admiratif des technologies embarquées de pointe et des solutions intelligentes conçues chez {company}"
+        tech_intro_en = "specialized in real-time embedded systems (STM32, FreeRTOS), Edge AI on Jetson/Raspberry Pi and IoT"
+        comp_hook_en = f"I am truly inspired by {company}'s advanced embedded architectures and intelligent hardware solutions"
+    elif effective_theme == "electrical_power":
+        tech_intro_fr = "passionné par l'électrotechnique, l'électronique de puissance et les réseaux électriques (machines électriques, variateurs de vitesse, schémas AutoCAD Electrical/EPLAN, distribution HT/BT)"
+        comp_hook_fr = f"Je suis particulièrement impressionné par le savoir-faire et l'envergure des réalisations électriques chez {company}"
+        tech_intro_en = "passionate about power electrical engineering, motor drives, power distribution and CAD design"
+        comp_hook_en = f"I am genuinely motivated by {company}'s high-standard electrical engineering projects"
+    else:
+        tech_intro_fr = "passionné par les systèmes embarqués, la robotique et le contrôle commande. Je suis basé au Maroc et je prépare activement mon stage de fin d'études (PFE) de 6 mois"
+        comp_hook_fr = f"Je suis très motivé par l'idée de rejoindre {company} et je suis sincèrement inspiré par vos projets et votre expertise dans le domaine"
+        tech_intro_en = "passionate about embedded systems, robotics and industrial control. Currently preparing my 6-month final graduation internship (PFE)"
+        comp_hook_en = f"I am genuinely motivated by the prospect of contributing to {company} and inspired by your technical achievements"
+
     if language == "fr":
         salutation = f"Bonjour {first_name}," if first_name else "Bonjour,"
         
@@ -130,15 +183,13 @@ def generate_fallback_template(contact: Dict[str, Any], profile: CandidateProfil
 
 J'espère que vous allez bien.
 
-Je suis étudiant en dernière année d'ingénierie en Génie Électrique, passionné par les systèmes embarqués, la robotique et les drones. Je suis basé au Maroc et je prépare actuellement mon stage de fin d'études (PFE).
+Je suis étudiant en dernière année d'ingénierie en Génie Électrique & Contrôle Industriel, {tech_intro_fr}.
 
-Je suis très motivé par l'idée de rejoindre {company} et je suis sincèrement inspiré par vos projets R&D, vos défis d'ingénierie et l'innovation technologique que vous portez.
+{comp_hook_fr}. En découvrant votre rôle en R&D, j'ai été particulièrement impressionné par la technicité et la complexité des défis que vous relevez.
 
-En découvrant votre parcours et votre rôle en R&D, j'ai été particulièrement impressionné par la technicité et la complexité des systèmes que vous développez.
+Je me permets de vous contacter pour bénéficier de votre regard d'expert sur mon CV et mes projets techniques. Si vous avez un moment, je serais très reconnaissant d'avoir votre avis et vos conseils pour m'aider à progresser.
 
-Je me permets de vous contacter pour bénéficier de votre regard d'expert sur mon CV et mon portfolio de projets. Si vous avez un moment, je serais très reconnaissant d'avoir votre avis et vos conseils pour m'aider à progresser.
-
-Je me demande également s'il y aurait des opportunités de stage PFE au sein de vos équipes R&D ou de conception.
+Je me demande également s'il y aurait des opportunités de stage PFE de 6 mois au sein de vos équipes.
 
 Portfolio : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
 
@@ -156,13 +207,11 @@ mohammedhsiny2@gmail.com"""
 
 J'espère que vous allez bien.
 
-Je suis étudiant en dernière année d'ingénierie en Génie Électrique, passionné par les systèmes embarqués, la robotique et les drones. Je suis basé au Maroc et je prépare actuellement mon stage de fin d'études (PFE).
+Je suis étudiant en dernière année d'ingénierie en Génie Électrique & Contrôle Industriel (FST Mohammedia), {tech_intro_fr}.
 
-Je suis très motivé par l'idée de rejoindre {company} et je suis sincèrement inspiré par votre vision et votre impact dans le secteur.
+{comp_hook_fr}. En voyant votre rôle, j'ai été inspiré par la manière dont vous accompagnez les talents et soutenez la croissance des équipes.
 
-En voyant votre parcours, j'ai été vraiment inspiré par votre rôle et par la manière dont vous contribuez à faire évoluer les talents dans ce domaine.
-
-Je me permets de vous contacter pour savoir s'il existe des opportunités de stage dans les domaines qui me passionnent. Je serais ravi d'avoir votre regard sur mon profil et de discuter des possibilités au sein de votre entreprise.
+Je me permets de vous contacter pour savoir s'il existe des opportunités de stage PFE (Projet de Fin d'Études de 6 mois) dans ces domaines. Je serais ravi d'échanger avec vous et de vous présenter mon profil.
 
 Portfolio : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
 
@@ -180,17 +229,15 @@ mohammedhsiny2@gmail.com"""
 
 J'espère que vous allez bien.
 
-Je suis étudiant en dernière année d'ingénierie en Génie Électrique, passionné par les systèmes embarqués, la robotique et les drones. Je suis basé au Maroc et je prépare actuellement mon stage de fin d'études (PFE).
+Élève-ingénieur en Génie Électrique & Contrôle Industriel, {tech_intro_fr}.
 
-Je suis très motivé par l'idée de rejoindre {company} et je suis sincèrement inspiré par votre vision et l'ambition de vos projets.
+{comp_hook_fr}. J'ai découvert les réalisations de votre structure et je suis admiratif de votre vision et de votre dynamique d'innovation.
 
-J'ai eu l'occasion de découvrir votre travail et je suis vraiment admiratif de ce que vous accomplissez.
-
-Je me permets de vous contacter pour bénéficier de votre regard sur mon parcours. Si vous avez un moment, je serais ravi d'avoir vos conseils pour évoluer dans ce secteur.
+Je me permets de solliciter vos précieux conseils d'entrepreneur/dirigeant sur mon profil et mon portfolio de projets, et voir si une collaboration dans le cadre de mon PFE de 6 mois pourrait s'envisager.
 
 Portfolio : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
 
-Merci d'avance pour votre temps.
+Merci d'avance pour votre écoute.
 
 Bien cordialement,
 Mohammed HSINY
@@ -204,15 +251,15 @@ mohammedhsiny2@gmail.com"""
 
 J'espère que vous allez bien.
 
-Je suis étudiant en dernière année d'ingénierie en Génie Électrique, passionné par les systèmes embarqués et la robotique. Je suis basé au Maroc et je prépare actuellement mon stage de fin d'études (PFE).
+Élève-ingénieur en Génie Électrique & Contrôle Industriel, {tech_intro_fr}.
 
-Je suis très motivé par l'idée de rejoindre {company} et je suis sincèrement inspiré par votre approche produit et votre vision du marché.
+{comp_hook_fr}. Votre travail et votre vision produit m'ont vivement intéressé.
 
-Votre travail m'a beaucoup intéressé et je serais ravi d'échanger avec vous sur vos projets et les opportunités pour un jeune ingénieur passionné.
+Je me permets de vous contacter pour échanger sur vos projets actuels et voir s'il existerait des perspectives de stage PFE pour apporter mon énergie technique à vos développements.
 
 Portfolio : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
 
-Merci d'avance.
+Merci d'avance pour votre temps.
 
 Bien cordialement,
 Mohammed HSINY
@@ -226,15 +273,13 @@ mohammedhsiny2@gmail.com"""
 
 J'espère que vous allez bien.
 
-Je suis étudiant en dernière année d'ingénierie en Génie Électrique, passionné par les systèmes embarqués, la robotique et les drones. Je suis basé au Maroc et je prépare actuellement mon stage de fin d'études (PFE).
+Je suis étudiant en dernière année d'ingénierie en Génie Électrique & Contrôle Industriel, {tech_intro_fr}.
 
-Je suis très motivé par l'idée de rejoindre {company} et je suis sincèrement inspiré par vos projets et votre expertise dans le domaine.
+{comp_hook_fr}. En découvrant votre parcours technique, j'ai été vivement inspiré par les projets sur lesquels vous intervenez.
 
-En découvrant votre parcours, j'ai été vraiment inspiré par votre travail et par les projets sur lesquels vous intervenez.
+Je me permets de vous contacter pour bénéficier de votre regard d'ingénieur sur mon portfolio de projets. Si vous avez un instant, je serais très reconnaissant d'avoir votre avis technique.
 
-Je me permets de vous contacter pour bénéficier de votre regard sur mon CV et mon portfolio. Si vous avez un moment, je serais très reconnaissant d'avoir votre avis pour m'aider à progresser.
-
-Je me demande aussi s'il y aurait des opportunités de stage au sein de votre équipe ou dans vos services.
+Je me demande également s'il y aurait des opportunités de stage PFE de 6 mois au sein de votre équipe.
 
 Portfolio : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
 
@@ -248,24 +293,24 @@ mohammedhsiny2@gmail.com"""
     else:
         salutation = f"Hi {first_name}," if first_name else "Hello,"
         if is_hr or is_product:
-            subject = "Stage PFE – Demande d'information"
+            subject = "PFE Internship – Information Request"
         else:
-            subject = "Stage PFE – Demande de conseil"
+            subject = "PFE Internship – Advice Request"
             
         body = f"""{salutation}
 
 I hope you are doing well.
 
-I am a final-year Electrical Engineering student passionate about embedded systems, robotics, and drones. I am based in Morocco and currently preparing for my final graduation internship (PFE).
+I am a final-year Electrical & Industrial Control Engineering student, {tech_intro_en}.
 
-I am genuinely motivated by the prospect of contributing to {company} and truly inspired by your vision and projects.
+{comp_hook_en}.
 
-I would be grateful for your feedback on my Resume and online portfolio:
+I would be truly grateful for your insights on my projects and online portfolio:
 https://portfolio-mohammed-hsiny-ux7z.vercel.app/
 
-I was also wondering if there might be internship opportunities within your team.
+I was also wondering if there might be graduation internship (PFE) opportunities within your team for a duration of 6 months.
 
-Thank you very much for your time.
+Thank you very much for your time and guidance.
 
 Best regards,
 Mohammed HSINY
@@ -279,17 +324,32 @@ async def generate_email_for_contact(
     profile: CandidateProfile,
     settings: LLMSettings,
     forced_lang: Optional[str] = None,
+    theme: str = "auto",
+    custom_instruction: str = "",
     tone: str = "persuasive_tech"
 ) -> GeneratedEmail:
-    """Generates an email for a contact using LLM with fallback handling."""
+    """Generates a deeply personalized email for a contact using LLM with theme & company context."""
     language = determine_language(contact, forced_lang)
     
     # If no API key is set, fallback to high-quality dynamic template
     if not settings.api_key and settings.provider != "ollama":
-        return generate_fallback_template(contact, profile, language)
+        return generate_fallback_template(
+            contact=contact, 
+            profile=profile, 
+            language=language, 
+            theme=theme, 
+            custom_instruction=custom_instruction
+        )
         
-    system_prompt = build_system_prompt()
-    user_prompt = build_user_prompt(contact, profile, language=language, tone=tone)
+    system_prompt = build_system_prompt(theme=theme, tone=tone)
+    user_prompt = build_user_prompt(
+        contact=contact, 
+        profile=profile, 
+        language=language, 
+        theme=theme, 
+        custom_instruction=custom_instruction, 
+        tone=tone
+    )
     
     try:
         if settings.provider == "gemini":
@@ -365,4 +425,11 @@ async def generate_email_for_contact(
     except Exception as e:
         # In case of API failure, log and return high quality fallback
         print(f"[LLM Warning] Generation failed for {contact.get('email')}: {e}. Using fallback template.")
-        return generate_fallback_template(contact, profile, language)
+        return generate_fallback_template(
+            contact=contact, 
+            profile=profile, 
+            language=language, 
+            theme=theme, 
+            custom_instruction=custom_instruction
+        )
+

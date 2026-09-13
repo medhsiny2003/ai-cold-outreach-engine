@@ -553,11 +553,14 @@ with tab2:
         st.info("Aucun contact chargé pour le moment. Vous pouvez charger le fichier d'exemple ou importer votre propre CSV/Excel.")
 
 # -------------------------------------------------------------
-# TAB 3: Génération IA
+# TAB 3: Génération IA & Personnalisation Thématique
 # -------------------------------------------------------------
 with tab3:
-    st.header("🤖 Générateur d'Emails par Intelligence Artificielle")
+    st.header("🤖 Studio IA & Personnalisation Thématique des Emails")
+    st.caption("Adaptez le contenu, le vocabulaire technique et les projets mis en avant selon le secteur de chaque entreprise (Drones, Solaire, Automatisme, etc.).")
     
+    from services.prompt_builder import THEMES_CATALOG, WRITING_STYLES, detect_best_theme_for_company
+
     col_g1, col_g2, col_g3 = st.columns(3)
     with col_g1:
         provider_choice = st.selectbox(
@@ -579,20 +582,42 @@ with tab3:
         selected_model = st.selectbox("Modèle", model_options, index=0)
         
     with col_g2:
-        tone_choice = st.selectbox(
-            "Ton & Approche Psychologique",
-            [
-                "persuasive_tech (Recommandé : axé réalisations concrètes, défis techniques)",
-                "formal_structured (Pour recruteurs RH / Talent Acquisition)",
-                "startup_bold (Pour Fondateurs / Directeurs R&D : rapide, orienté exécution)",
-            ]
+        theme_keys = list(THEMES_CATALOG.keys())
+        theme_labels = [THEMES_CATALOG[k]["label"] for k in theme_keys]
+        selected_theme_idx = st.selectbox(
+            "🎯 Spécialisation / Angle Thématique",
+            range(len(theme_keys)),
+            format_func=lambda i: theme_labels[i],
+            index=0,
+            help="Sélectionnez le domaine à valoriser dans vos candidatures (l'IA adapte les projets et le vocabulaire technique)."
         )
+        selected_theme_key = theme_keys[selected_theme_idx]
         
     with col_g3:
+        style_keys = list(WRITING_STYLES.keys())
+        style_labels = [WRITING_STYLES[k]["label"] for k in style_keys]
+        selected_style_idx = st.selectbox(
+            "✍️ Style Rédactionnel & Approche",
+            range(len(style_keys)),
+            format_func=lambda i: style_labels[i],
+            index=0
+        )
+        selected_style_key = style_keys[selected_style_idx]
+
+    # Sub-row for custom directive and language options
+    col_opt1, col_opt2 = st.columns([2, 1])
+    with col_opt1:
+        custom_pitch_directive = st.text_input(
+            "💡 Directive / Pitch Spécial pour l'IA (Optionnel)",
+            value="",
+            placeholder="Ex: Insister sur mon stage en IA chez Harmattan, mon intérêt pour le dimensionnement solaire, etc.",
+            help="Une consigne libre transmise directement au modèle IA pour affiner la personnalisation de vos messages."
+        )
+    with col_opt2:
         lang_mode = st.selectbox(
             "Mode de Langue",
             [
-                "Auto-détection (Français si FR/BE/CH/MA/CA, Anglais pour reste du monde)",
+                "Auto-détection (Français si FR/BE/CH/MA/CA, Anglais sinon)",
                 "Forcer Français pour tous",
                 "Forcer Anglais pour tous"
             ]
@@ -608,6 +633,10 @@ with tab3:
     llm.provider = provider_choice
     llm.model_name = selected_model
 
+    # Info banner on selected theme
+    current_theme_data = THEMES_CATALOG[selected_theme_key]
+    st.info(f"**Angle sélectionné :** {current_theme_data['label']} — *{current_theme_data['description']}*")
+
     st.divider()
 
     contacts = get_all_contacts()
@@ -615,13 +644,13 @@ with tab3:
         st.warning("Veuillez d'abord importer des contacts dans l'onglet 'Contacts'.")
     else:
         pending_contacts = [c for c in contacts if c.get("status") in ["pending", "failed"]]
-        st.write(f"📊 **Statut** : {len(pending_contacts)} contacts en attente de génération sur {len(contacts)} au total.")
+        st.write(f"📊 **Statut de la base** : **{len(pending_contacts)}** contacts en attente de génération sur **{len(contacts)}** au total.")
         
         col_btn1, col_btn2 = st.columns([2, 2])
         with col_btn1:
             gen_pending_btn = st.button(f"⚡ Générer pour les {len(pending_contacts)} contacts en attente", type="primary", use_container_width=True)
         with col_btn2:
-            gen_all_btn = st.button(f"🔄 Tout régénérer ({len(contacts)} contacts)", type="secondary", use_container_width=True)
+            gen_all_btn = st.button(f"🔄 Tout régénérer avec cet angle ({len(contacts)} contacts)", type="secondary", use_container_width=True)
 
         if gen_pending_btn or gen_all_btn:
             targets = pending_contacts if gen_pending_btn else contacts
@@ -633,13 +662,15 @@ with tab3:
                 
                 async def run_batch():
                     for idx, contact in enumerate(targets):
-                        status_box.info(f"⏳ Génération pour **{contact.get('name') or contact.get('email')}** ({contact.get('company')})...")
+                        status_box.info(f"⏳ Génération pour **{contact.get('name') or contact.get('email')}** ({contact.get('company', 'Société')})...")
                         res = await generate_email_for_contact(
                             contact=contact,
                             profile=profile,
                             settings=llm,
                             forced_lang=forced_lang,
-                            tone=tone_choice
+                            theme=selected_theme_key,
+                            custom_instruction=custom_pitch_directive,
+                            tone=selected_style_key
                         )
                         contact["subject"] = res.subject
                         contact["body"] = res.body
@@ -649,16 +680,16 @@ with tab3:
                         progress_bar.progress((idx + 1) / len(targets))
                         
                 asyncio.run(run_batch())
-                status_box.success(f"🎉 Génération terminée pour {len(targets)} contacts ! Rendez-vous dans l'onglet 'Revue & Édition' pour vérifier et valider.")
+                status_box.success(f"🎉 Génération personnalisée terminée pour {len(targets)} contacts ! Rendez-vous dans l'onglet 'Revue & Édition' pour vérifier et valider.")
                 time.sleep(1.5)
                 st.rerun()
 
 # -------------------------------------------------------------
-# TAB 4: Revue & Édition
+# TAB 4: Revue & Édition (Human-in-the-Loop)
 # -------------------------------------------------------------
 with tab4:
-    st.header("✍️ Revue, Édition & Validation (Human-in-the-Loop)")
-    st.caption("Inspectez chaque email généré, apportez des modifications si nécessaire et approuvez-le pour l'envoi.")
+    st.header("✍️ Revue, Édition & Personnalisation Individuelle")
+    st.caption("Inspectez chaque email généré, ajustez l'angle thématique à la volée ou modifiez le texte manuellement avant approbation.")
     
     contacts = get_all_contacts()
     if not contacts:
@@ -719,7 +750,6 @@ with tab4:
                     st.session_state.selected_contact_id = contact_ids[current_idx - 1]
                     st.rerun()
             with col_nav2:
-                # Format stable display labels without dynamic status that causes key mutations
                 def get_contact_label(cid):
                     c = contact_map[cid]
                     st_badge = {"pending": "⏳", "generated": "🟡", "approved": "✅", "sent": "🚀", "failed": "❌"}.get(c.get("status"), "⏳")
@@ -747,7 +777,7 @@ with tab4:
             col_rev_info, col_rev_edit = st.columns([1, 2])
             
             with col_rev_info:
-                st.markdown("### 📌 Détails du Destinataire")
+                st.markdown("### 📌 Profil du Destinataire")
                 st.markdown(f"- **Nom :** `{current_contact.get('name') or 'N/A'}`")
                 st.markdown(f"- **Email :** `{current_contact.get('email')}`")
                 st.markdown(f"- **Entreprise :** `{current_contact.get('company') or 'N/A'}`")
@@ -757,13 +787,42 @@ with tab4:
                 if current_contact.get("notes"):
                     st.markdown(f"- **Notes :** {current_contact.get('notes')}")
                     
-                st.write("")
-                if st.button("⚡ Générer / Régénérer cet email avec l'IA", type="primary", use_container_width=True):
+                st.divider()
+                st.markdown("### 🤖 Régénération Ciblée IA")
+                
+                # Dynamic theme detector suggestion
+                suggested_theme = detect_best_theme_for_company(
+                    company=current_contact.get("company", ""),
+                    role=current_contact.get("role", ""),
+                    industry=current_contact.get("industry", "")
+                )
+                theme_keys_list = list(THEMES_CATALOG.keys())
+                theme_labels_list = [THEMES_CATALOG[k]["label"] for k in theme_keys_list]
+                sugg_idx = theme_keys_list.index(suggested_theme) if suggested_theme in theme_keys_list else 0
+                
+                single_theme_idx = st.selectbox(
+                    "Thématique pour ce recruteur",
+                    range(len(theme_keys_list)),
+                    format_func=lambda i: theme_labels_list[i],
+                    index=sugg_idx,
+                    key=f"thm_sel_{current_contact['id']}"
+                )
+                single_theme_key = theme_keys_list[single_theme_idx]
+                
+                single_custom_note = st.text_input(
+                    "Directive spécifique pour ce contact",
+                    placeholder="Ex: Mentionner leur projet X...",
+                    key=f"note_input_{current_contact['id']}"
+                )
+                
+                if st.button("⚡ Régénérer avec cet Angle (IA)", type="primary", use_container_width=True):
                     async def regen_current():
                         res = await generate_email_for_contact(
                             contact=current_contact,
                             profile=profile,
-                            settings=llm
+                            settings=llm,
+                            theme=single_theme_key,
+                            custom_instruction=single_custom_note
                         )
                         current_contact["subject"] = res.subject
                         current_contact["body"] = res.body
@@ -776,13 +835,12 @@ with tab4:
                     
                     asyncio.run(regen_current())
                     st.session_state.selected_contact_id = current_contact['id']
-                    st.success("✅ Email généré avec succès !")
+                    st.success("✅ Email personnalisé régénéré avec succès !")
                     st.rerun()
 
             with col_rev_edit:
-                st.markdown("### 📝 Contenu de l'Email")
+                st.markdown("### 📝 Contenu de l'Email Personnalisé")
                 
-                # Check if subject/body is empty and pre-fill if not generated yet
                 initial_subj = current_contact.get("subject", "")
                 initial_body = current_contact.get("body", "")
                 
