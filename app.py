@@ -44,7 +44,23 @@ except ImportError:
 
 from services.contact_manager import parse_contacts_file, generate_sample_csv
 from services.prompt_builder import determine_language
-from services.llm_service import generate_email_for_contact, generate_email_from_template
+
+try:
+    from services.llm_service import generate_email_for_contact, generate_email_from_template, GeneratedEmail
+except ImportError:
+    from services.llm_service import generate_email_for_contact
+    try:
+        from services.llm_service import adapt_template_offline
+    except Exception:
+        def adapt_template_offline(template_text, contact, profile, language="fr"):
+            name = contact.get("name") or "Madame, Monsieur"
+            comp = contact.get("company") or "votre entreprise"
+            txt = template_text.replace("[Prénom]", name).replace("[Entreprise]", comp)
+            return type("GeneratedEmail", (), {"subject": f"Stage PFE - {comp}", "body": txt, "language": language})()
+            
+    async def generate_email_from_template(template_text, contact, profile, settings, forced_lang=None, custom_instruction=""):
+        return adapt_template_offline(template_text, contact, profile, forced_lang or "fr")
+
 from services.email_sender import (
     test_smtp_connection, send_single_email, send_batch_emails,
     build_professional_html, LOGO_PATH

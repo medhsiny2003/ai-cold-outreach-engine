@@ -11,6 +11,14 @@ from services.prompt_builder import (
     build_template_adaptation_user_prompt
 )
 
+__all__ = [
+    "GeneratedEmail",
+    "generate_email_for_contact",
+    "generate_email_from_template",
+    "adapt_template_offline",
+    "clean_json_response"
+]
+
 class GeneratedEmail:
     def __init__(self, subject: str, body: str, language: str):
         self.subject = subject.strip()
