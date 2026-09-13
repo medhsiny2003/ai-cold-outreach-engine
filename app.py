@@ -29,7 +29,7 @@ try:
         init_db, load_profile, save_profile, load_smtp_settings, save_smtp_settings,
         load_llm_settings, save_llm_settings, get_all_contacts, save_or_update_contact,
         save_contacts_bulk, approve_all_contacts, clear_all_contacts, log_sent_email, get_all_sent_logs,
-        get_all_recruiter_responses, mark_response_read
+        get_all_recruiter_responses, mark_response_read, trigger_waterfall_retry_bounced
     )
 except ImportError:
     from services.storage_service import (
@@ -41,9 +41,48 @@ except ImportError:
         return []
     def mark_response_read(resp_id):
         pass
+    def trigger_waterfall_retry_bounced():
+        return {"success": True, "count": 0, "message": "Aucun email alternatif."}
 
 from services.contact_manager import parse_contacts_file, generate_sample_csv
-from services.prompt_builder import determine_language
+
+try:
+    from services.prompt_builder import (
+        THEMES_CATALOG,
+        WRITING_STYLES,
+        detect_best_theme_for_company,
+        determine_language,
+        classify_role_category,
+        get_target_subject,
+        build_system_prompt,
+        build_user_prompt,
+        build_template_adaptation_system_prompt,
+        build_template_adaptation_user_prompt
+    )
+except ImportError:
+    THEMES_CATALOG = {
+        "auto": {"label": "🎯 Auto-détection IA", "description": "Auto", "focus_fr": "génie électrique, contrôle commande, robotique", "focus_en": "electrical, control, robotics", "tagline_fr": "Élève-ingénieur", "tagline_en": "Engineering student"},
+        "drones_robotics": {"label": "🛸 Focus Drones & Robotique", "description": "Drones", "focus_fr": "systèmes autonomes, ROS, vision", "focus_en": "autonomous systems, ROS", "tagline_fr": "Élève-ingénieur", "tagline_en": "Engineering student"},
+        "solar_energy": {"label": "☀️ Focus Énergie Solaire", "description": "Solaire", "focus_fr": "photovoltaïque, MPPT", "focus_en": "solar PV, MPPT", "tagline_fr": "Élève-ingénieur", "tagline_en": "Engineering student"},
+        "electrical_power": {"label": "⚡ Focus Génie Électrique", "description": "Électrique", "focus_fr": "machines, variateurs", "focus_en": "electric machines", "tagline_fr": "Élève-ingénieur", "tagline_en": "Engineering student"},
+        "automation_scada": {"label": "🏭 Focus Automatisme & SCADA", "description": "Automatisme", "focus_fr": "PLC Siemens/Schneider, SCADA", "focus_en": "PLC, SCADA", "tagline_fr": "Élève-ingénieur", "tagline_en": "Engineering student"},
+        "embedded_edge_ai": {"label": "🧠 Focus Systèmes Embarqués", "description": "Embarqué", "focus_fr": "STM32, Edge AI", "focus_en": "STM32, Edge AI", "tagline_fr": "Élève-ingénieur", "tagline_en": "Engineering student"},
+        "custom": {"label": "✍️ Directive Personnalisée", "description": "Custom", "focus_fr": "sur-mesure", "focus_en": "custom", "tagline_fr": "Élève-ingénieur", "tagline_en": "Engineering student"}
+    }
+    WRITING_STYLES = {
+        "persuasive_tech": {"label": "🎯 Équilibré & Persuasif Ingénieur", "prompt_fr": "Ton convaincant et dynamique.", "prompt_en": "Persuasive tone."},
+        "deep_tech_rd": {"label": "🔬 R&D Approfondi", "prompt_fr": "Ton axé recherche.", "prompt_en": "R&D tone."},
+        "direct_executive": {"label": "👔 Direct & Court", "prompt_fr": "Court et direct.", "prompt_en": "Short and direct."},
+        "expert_mentorship": {"label": "🤝 Mentorat & Conseil", "prompt_fr": "Demande d'avis.", "prompt_en": "Mentorship."}
+    }
+    def detect_best_theme_for_company(company="", role="", industry=""):
+        return "auto"
+    def determine_language(contact, user_forced_lang=None):
+        return user_forced_lang or "fr"
+    def classify_role_category(role=""):
+        return "INGENIEUR_TECH"
+    def get_target_subject(persona="", theme="auto", language="fr"):
+        return "Stage PFE – Demande de conseil"
 
 try:
     from services.llm_service import generate_email_for_contact, generate_email_from_template, GeneratedEmail
@@ -575,8 +614,6 @@ with tab3:
     st.header("🤖 Studio IA & Personnalisation des Candidatures")
     st.caption("Générez des emails ultra-personnalisés par angle thématique (Drones, Solaire, Automatisme, etc.) ou à partir d'un modèle/draft rédigé par vos soins.")
     
-    from services.prompt_builder import THEMES_CATALOG, WRITING_STYLES, detect_best_theme_for_company
-
     gen_mode = st.radio(
         "Sélectionnez le mode de génération",
         [
@@ -1126,7 +1163,6 @@ mohammedhsiny2@gmail.com"""
         st.subheader(f"📬 Envoi — {len(approved_contacts)} prêts")
     with col_mb2:
         if st.button("🔀 Waterfall (Emails Alt.)", use_container_width=True, help="Si l'adresse principale a été rejetée, bascule automatiquement sur l'Email Alternatif 1 ou 2 pour retenter"):
-            from services.storage_service import trigger_waterfall_retry_bounced
             wf_res = trigger_waterfall_retry_bounced()
             if wf_res["count"] > 0:
                 st.success(f"🎉 {wf_res['count']} contact(s) réarmé(s) avec leur email alternatif !")

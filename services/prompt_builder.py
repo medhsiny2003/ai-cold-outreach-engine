@@ -3,6 +3,19 @@ import re
 from typing import Dict, Any, Optional
 from config import CandidateProfile, is_francophone
 
+__all__ = [
+    "THEMES_CATALOG",
+    "WRITING_STYLES",
+    "detect_best_theme_for_company",
+    "determine_language",
+    "classify_role_category",
+    "get_target_subject",
+    "build_system_prompt",
+    "build_user_prompt",
+    "build_template_adaptation_system_prompt",
+    "build_template_adaptation_user_prompt",
+]
+
 THEMES_CATALOG = {
     "auto": {
         "label": "🎯 Auto-détection IA Intelligente",
