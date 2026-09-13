@@ -44,7 +44,7 @@ except ImportError:
 
 from services.contact_manager import parse_contacts_file, generate_sample_csv
 from services.prompt_builder import determine_language
-from services.llm_service import generate_email_for_contact
+from services.llm_service import generate_email_for_contact, generate_email_from_template
 from services.email_sender import (
     test_smtp_connection, send_single_email, send_batch_emails,
     build_professional_html, LOGO_PATH
@@ -556,11 +556,20 @@ with tab2:
 # TAB 3: Génération IA & Personnalisation Thématique
 # -------------------------------------------------------------
 with tab3:
-    st.header("🤖 Studio IA & Personnalisation Thématique des Emails")
-    st.caption("Adaptez le contenu, le vocabulaire technique et les projets mis en avant selon le secteur de chaque entreprise (Drones, Solaire, Automatisme, etc.).")
+    st.header("🤖 Studio IA & Personnalisation des Candidatures")
+    st.caption("Générez des emails ultra-personnalisés par angle thématique (Drones, Solaire, Automatisme, etc.) ou à partir d'un modèle/draft rédigé par vos soins.")
     
     from services.prompt_builder import THEMES_CATALOG, WRITING_STYLES, detect_best_theme_for_company
 
+    gen_mode = st.radio(
+        "Sélectionnez le mode de génération",
+        [
+            "🎯 Mode 1 : Studio Thématique & Métiers IA (Auto-détection, Drones, Solaire, Automatisme...)",
+            "📋 Mode 2 : Modèle / Template Sur-Mesure (Votre texte de référence adapté par l'IA)"
+        ],
+        horizontal=True
+    )
+    
     col_g1, col_g2, col_g3 = st.columns(3)
     with col_g1:
         provider_choice = st.selectbox(
@@ -580,62 +589,113 @@ with tab3:
             model_options = ["llama3.2", "mistral"]
             
         selected_model = st.selectbox("Modèle", model_options, index=0)
-        
-    with col_g2:
-        theme_keys = list(THEMES_CATALOG.keys())
-        theme_labels = [THEMES_CATALOG[k]["label"] for k in theme_keys]
-        selected_theme_idx = st.selectbox(
-            "🎯 Spécialisation / Angle Thématique",
-            range(len(theme_keys)),
-            format_func=lambda i: theme_labels[i],
-            index=0,
-            help="Sélectionnez le domaine à valoriser dans vos candidatures (l'IA adapte les projets et le vocabulaire technique)."
-        )
-        selected_theme_key = theme_keys[selected_theme_idx]
-        
-    with col_g3:
-        style_keys = list(WRITING_STYLES.keys())
-        style_labels = [WRITING_STYLES[k]["label"] for k in style_keys]
-        selected_style_idx = st.selectbox(
-            "✍️ Style Rédactionnel & Approche",
-            range(len(style_keys)),
-            format_func=lambda i: style_labels[i],
-            index=0
-        )
-        selected_style_key = style_keys[selected_style_idx]
-
-    # Sub-row for custom directive and language options
-    col_opt1, col_opt2 = st.columns([2, 1])
-    with col_opt1:
-        custom_pitch_directive = st.text_input(
-            "💡 Directive / Pitch Spécial pour l'IA (Optionnel)",
-            value="",
-            placeholder="Ex: Insister sur mon stage en IA chez Harmattan, mon intérêt pour le dimensionnement solaire, etc.",
-            help="Une consigne libre transmise directement au modèle IA pour affiner la personnalisation de vos messages."
-        )
-    with col_opt2:
-        lang_mode = st.selectbox(
-            "Mode de Langue",
-            [
-                "Auto-détection (Français si FR/BE/CH/MA/CA, Anglais sinon)",
-                "Forcer Français pour tous",
-                "Forcer Anglais pour tous"
-            ]
-        )
-
-    # Convert settings
-    forced_lang = None
-    if "Forcer Français" in lang_mode:
-        forced_lang = "fr"
-    elif "Forcer Anglais" in lang_mode:
-        forced_lang = "en"
 
     llm.provider = provider_choice
     llm.model_name = selected_model
 
-    # Info banner on selected theme
-    current_theme_data = THEMES_CATALOG[selected_theme_key]
-    st.info(f"**Angle sélectionné :** {current_theme_data['label']} — *{current_theme_data['description']}*")
+    if "Mode 1" in gen_mode:
+        with col_g2:
+            theme_keys = list(THEMES_CATALOG.keys())
+            theme_labels = [THEMES_CATALOG[k]["label"] for k in theme_keys]
+            selected_theme_idx = st.selectbox(
+                "🎯 Spécialisation / Angle Thématique",
+                range(len(theme_keys)),
+                format_func=lambda i: theme_labels[i],
+                index=0,
+                help="Sélectionnez le domaine à valoriser dans vos candidatures (l'IA adapte les projets et le vocabulaire technique)."
+            )
+            selected_theme_key = theme_keys[selected_theme_idx]
+            
+        with col_g3:
+            style_keys = list(WRITING_STYLES.keys())
+            style_labels = [WRITING_STYLES[k]["label"] for k in style_keys]
+            selected_style_idx = st.selectbox(
+                "✍️ Style Rédactionnel & Approche",
+                range(len(style_keys)),
+                format_func=lambda i: style_labels[i],
+                index=0
+            )
+            selected_style_key = style_keys[selected_style_idx]
+
+        col_opt1, col_opt2 = st.columns([2, 1])
+        with col_opt1:
+            custom_pitch_directive = st.text_input(
+                "💡 Directive / Pitch Spécial pour l'IA (Optionnel)",
+                value="",
+                placeholder="Ex: Insister sur mon stage en IA chez Harmattan, mon intérêt pour le dimensionnement solaire, etc.",
+                help="Une consigne libre transmise directement au modèle IA pour affiner la personnalisation de vos messages."
+            )
+        with col_opt2:
+            lang_mode = st.selectbox(
+                "Mode de Langue",
+                [
+                    "Auto-détection (Français si FR/BE/CH/MA/CA, Anglais sinon)",
+                    "Forcer Français pour tous",
+                    "Forcer Anglais pour tous"
+                ]
+            )
+
+        forced_lang = None
+        if "Forcer Français" in lang_mode:
+            forced_lang = "fr"
+        elif "Forcer Anglais" in lang_mode:
+            forced_lang = "en"
+
+        current_theme_data = THEMES_CATALOG[selected_theme_key]
+        st.info(f"**Angle sélectionné :** {current_theme_data['label']} — *{current_theme_data['description']}*")
+
+    else:
+        # Mode 2: Modèle / Template Sur-Mesure
+        with col_g2:
+            lang_mode = st.selectbox(
+                "Mode de Langue",
+                [
+                    "Auto-détection (Français si FR/BE/CH/MA/CA, Anglais sinon)",
+                    "Forcer Français pour tous",
+                    "Forcer Anglais pour tous"
+                ]
+            )
+        with col_g3:
+            custom_pitch_directive = st.text_input(
+                "💡 Consigne d'adaptation IA (Optionnel)",
+                value="",
+                placeholder="Ex: Garder un ton très direct et concis...",
+                help="Consigne supplémentaire donnée à l'IA lors de l'adaptation de votre modèle."
+            )
+
+        forced_lang = None
+        if "Forcer Français" in lang_mode:
+            forced_lang = "fr"
+        elif "Forcer Anglais" in lang_mode:
+            forced_lang = "en"
+
+        default_custom_template = """Objet : Stage PFE Ingénieur – Contribution aux projets de [Entreprise]
+
+Bonjour [Prénom],
+
+Je me permets de vous contacter car je suis avec grand intérêt les innovations et réalisations de [Entreprise] dans vos projets technologiques.
+
+Élève-ingénieur en dernière année en Électrotechnique et Automatique à l'ENSEM Casablanca, je recherche un stage de fin d'études (PFE) de 4 à 6 mois à partir de février 2026. Passionné par l'intégration des systèmes intelligents, le contrôle-commande et l'automatisation, j'ai développé des compétences solides à travers plusieurs projets concrets (banc d'essai HIL, station solaire MPPT, navigation autonome).
+
+Seriez-vous ouvert à un bref échange de 5 à 10 minutes la semaine prochaine pour discuter de vos besoins actuels et voir comment je pourrais contribuer aux projets de [Entreprise] ?
+
+Vous pouvez également consulter mon portfolio technique en ligne : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
+
+Bien cordialement,
+Mohammed HSINY
+Élève-Ingénieur ENSEM | Électrotechnique & Automatique
++212 6 25 80 50 25"""
+
+        st.markdown("##### 📝 Votre Modèle d'Email de Référence")
+        custom_template_text = st.text_area(
+            "Rédigez ou collez votre email ici (l'IA s'occupe de contextualiser et d'adapter pour chaque entreprise) :",
+            value=st.session_state.get("custom_reference_template", default_custom_template),
+            height=230,
+            key="custom_template_input_area",
+            help="Balises dynamiques : [Prénom], [Nom], [Entreprise], [Poste]. L'IA adaptera également les mentions de projets selon le domaine de la société !"
+        )
+        st.session_state["custom_reference_template"] = custom_template_text
+        st.caption("💡 **Balises automatiques** : `[Prénom]`, `[Nom]`, `[Entreprise]`, `[Poste]`. L'IA analyse l'activité réelle de l'entreprise pour contextualiser les phrases de votre texte.")
 
     st.divider()
 
@@ -650,7 +710,7 @@ with tab3:
         with col_btn1:
             gen_pending_btn = st.button(f"⚡ Générer pour les {len(pending_contacts)} contacts en attente", type="primary", use_container_width=True)
         with col_btn2:
-            gen_all_btn = st.button(f"🔄 Tout régénérer avec cet angle ({len(contacts)} contacts)", type="secondary", use_container_width=True)
+            gen_all_btn = st.button(f"🔄 Tout régénérer ({len(contacts)} contacts)", type="secondary", use_container_width=True)
 
         if gen_pending_btn or gen_all_btn:
             targets = pending_contacts if gen_pending_btn else contacts
@@ -663,15 +723,25 @@ with tab3:
                 async def run_batch():
                     for idx, contact in enumerate(targets):
                         status_box.info(f"⏳ Génération pour **{contact.get('name') or contact.get('email')}** ({contact.get('company', 'Société')})...")
-                        res = await generate_email_for_contact(
-                            contact=contact,
-                            profile=profile,
-                            settings=llm,
-                            forced_lang=forced_lang,
-                            theme=selected_theme_key,
-                            custom_instruction=custom_pitch_directive,
-                            tone=selected_style_key
-                        )
+                        if "Mode 1" in gen_mode:
+                            res = await generate_email_for_contact(
+                                contact=contact,
+                                profile=profile,
+                                settings=llm,
+                                forced_lang=forced_lang,
+                                theme=selected_theme_key,
+                                custom_instruction=custom_pitch_directive,
+                                tone=selected_style_key
+                            )
+                        else:
+                            res = await generate_email_from_template(
+                                template_text=custom_template_text,
+                                contact=contact,
+                                profile=profile,
+                                settings=llm,
+                                forced_lang=forced_lang,
+                                custom_instruction=custom_pitch_directive
+                            )
                         contact["subject"] = res.subject
                         contact["body"] = res.body
                         contact["language"] = res.language
@@ -790,53 +860,94 @@ with tab4:
                 st.divider()
                 st.markdown("### 🤖 Régénération Ciblée IA")
                 
-                # Dynamic theme detector suggestion
-                suggested_theme = detect_best_theme_for_company(
-                    company=current_contact.get("company", ""),
-                    role=current_contact.get("role", ""),
-                    industry=current_contact.get("industry", "")
-                )
-                theme_keys_list = list(THEMES_CATALOG.keys())
-                theme_labels_list = [THEMES_CATALOG[k]["label"] for k in theme_keys_list]
-                sugg_idx = theme_keys_list.index(suggested_theme) if suggested_theme in theme_keys_list else 0
-                
-                single_theme_idx = st.selectbox(
-                    "Thématique pour ce recruteur",
-                    range(len(theme_keys_list)),
-                    format_func=lambda i: theme_labels_list[i],
-                    index=sugg_idx,
-                    key=f"thm_sel_{current_contact['id']}"
-                )
-                single_theme_key = theme_keys_list[single_theme_idx]
-                
-                single_custom_note = st.text_input(
-                    "Directive spécifique pour ce contact",
-                    placeholder="Ex: Mentionner leur projet X...",
-                    key=f"note_input_{current_contact['id']}"
+                regen_tab_choice = st.radio(
+                    "Mode de régénération",
+                    ["🎯 Par Thématique", "📋 Par Modèle Sur-Mesure"],
+                    key=f"regen_mode_{current_contact['id']}",
+                    horizontal=True
                 )
                 
-                if st.button("⚡ Régénérer avec cet Angle (IA)", type="primary", use_container_width=True):
-                    async def regen_current():
-                        res = await generate_email_for_contact(
-                            contact=current_contact,
-                            profile=profile,
-                            settings=llm,
-                            theme=single_theme_key,
-                            custom_instruction=single_custom_note
-                        )
-                        current_contact["subject"] = res.subject
-                        current_contact["body"] = res.body
-                        current_contact["language"] = res.language
-                        current_contact["status"] = "generated"
-                        save_or_update_contact(current_contact)
-                        # Sync session state inputs
-                        st.session_state[f"subj_{current_contact['id']}"] = res.subject
-                        st.session_state[f"body_{current_contact['id']}"] = res.body
+                if regen_tab_choice == "🎯 Par Thématique":
+                    suggested_theme = detect_best_theme_for_company(
+                        company=current_contact.get("company", ""),
+                        role=current_contact.get("role", ""),
+                        industry=current_contact.get("industry", "")
+                    )
+                    theme_keys_list = list(THEMES_CATALOG.keys())
+                    theme_labels_list = [THEMES_CATALOG[k]["label"] for k in theme_keys_list]
+                    sugg_idx = theme_keys_list.index(suggested_theme) if suggested_theme in theme_keys_list else 0
                     
-                    asyncio.run(regen_current())
-                    st.session_state.selected_contact_id = current_contact['id']
-                    st.success("✅ Email personnalisé régénéré avec succès !")
-                    st.rerun()
+                    single_theme_idx = st.selectbox(
+                        "Thématique pour ce recruteur",
+                        range(len(theme_keys_list)),
+                        format_func=lambda i: theme_labels_list[i],
+                        index=sugg_idx,
+                        key=f"thm_sel_{current_contact['id']}"
+                    )
+                    single_theme_key = theme_keys_list[single_theme_idx]
+                    
+                    single_custom_note = st.text_input(
+                        "Directive spécifique pour ce contact",
+                        placeholder="Ex: Mentionner leur projet X...",
+                        key=f"note_input_{current_contact['id']}"
+                    )
+                    
+                    if st.button("⚡ Régénérer avec cet Angle (IA)", type="primary", use_container_width=True, key=f"btn_regen_thm_{current_contact['id']}"):
+                        async def regen_current():
+                            res = await generate_email_for_contact(
+                                contact=current_contact,
+                                profile=profile,
+                                settings=llm,
+                                theme=single_theme_key,
+                                custom_instruction=single_custom_note
+                            )
+                            current_contact["subject"] = res.subject
+                            current_contact["body"] = res.body
+                            current_contact["language"] = res.language
+                            current_contact["status"] = "generated"
+                            save_or_update_contact(current_contact)
+                            # Sync session state inputs
+                            st.session_state[f"subj_{current_contact['id']}"] = res.subject
+                            st.session_state[f"body_{current_contact['id']}"] = res.body
+                        
+                        asyncio.run(regen_current())
+                        st.session_state.selected_contact_id = current_contact['id']
+                        st.success("✅ Email personnalisé régénéré avec succès !")
+                        st.rerun()
+                else:
+                    ref_tmpl = st.session_state.get("custom_reference_template", "")
+                    single_tmpl_text = st.text_area(
+                        "Modèle à adapter pour ce contact",
+                        value=ref_tmpl if ref_tmpl else "Objet : Stage PFE Ingénieur – Contribution aux projets de [Entreprise]\n\nBonjour [Prénom],\n\nJe suis vos réalisations chez [Entreprise]...",
+                        height=160,
+                        key=f"tmpl_text_{current_contact['id']}"
+                    )
+                    single_tmpl_note = st.text_input(
+                        "Consigne d'adaptation IA (Optionnel)",
+                        placeholder="Ex: Mettre en valeur l'IA embarquée...",
+                        key=f"tmpl_note_{current_contact['id']}"
+                    )
+                    if st.button("📋 Adapter ce Modèle (IA)", type="primary", use_container_width=True, key=f"btn_regen_tmpl_{current_contact['id']}"):
+                        async def regen_tmpl_current():
+                            res = await generate_email_from_template(
+                                template_text=single_tmpl_text,
+                                contact=current_contact,
+                                profile=profile,
+                                settings=llm,
+                                custom_instruction=single_tmpl_note
+                            )
+                            current_contact["subject"] = res.subject
+                            current_contact["body"] = res.body
+                            current_contact["language"] = res.language
+                            current_contact["status"] = "generated"
+                            save_or_update_contact(current_contact)
+                            st.session_state[f"subj_{current_contact['id']}"] = res.subject
+                            st.session_state[f"body_{current_contact['id']}"] = res.body
+                            
+                        asyncio.run(regen_tmpl_current())
+                        st.session_state.selected_contact_id = current_contact['id']
+                        st.success("✅ Modèle adapté pour ce contact avec succès !")
+                        st.rerun()
 
             with col_rev_edit:
                 st.markdown("### 📝 Contenu de l'Email Personnalisé")

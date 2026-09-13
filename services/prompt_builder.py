@@ -285,3 +285,72 @@ JSON STRICT OUTPUT:
 }}
 ```
 """
+
+def build_template_adaptation_system_prompt() -> str:
+    return """Tu es un assistant expert en communication professionnelle et cold outreach pour Mohammed HSINY.
+L'utilisateur te fournit un MODÈLE D'EMAIL DE RÉFÉRENCE (un template rédigé par ses soins).
+
+TON RÔLE :
+Conserver fidèlement le style, la structure et la logique du texte de référence fourni par Mohammed, tout en ADAPTANT ET CONTEXTUALISANT intelligemment pour chaque destinataire :
+1. **Identité du Destinataire** : Remplacer les formules de salutation ([Prénom], [Nom], Madame, Monsieur) de façon naturelle.
+2. **Entreprise Cible** : Remplacer [Entreprise], [Société], et contextualiser les phrases qui mentionnent l'activité ou les projets de cette société.
+3. **Activité & Projets** : Si le texte mentionne des projets, adapte-les à ce que fait réellement l'entreprise (Drones, Solaire, Automatisme, Électrique, etc.).
+4. **Fluidité & Qualité** : Garantir un texte parfait sans balises résiduelles (supprimer les crochets `[...]` ou `{{...}}`).
+5. **Signature** : Conserver la signature de Mohammed HSINY avec le lien de son portfolio (https://portfolio-mohammed-hsiny-ux7z.vercel.app/).
+
+FORMAT DE SORTIE (JSON STRICT OBLIGATOIRE) :
+```json
+{
+  "subject": "Objet adapté à l'entreprise",
+  "body_plain_text": "Le texte complet de l'email adapté"
+}
+```
+"""
+
+def build_template_adaptation_user_prompt(
+    template_text: str,
+    contact: Dict[str, Any],
+    profile: CandidateProfile,
+    language: str = "fr",
+    custom_instruction: str = ""
+) -> str:
+    first_name = contact.get("first_name") or contact.get("prenom") or ""
+    last_name = contact.get("last_name") or contact.get("nom") or ""
+    full_name = contact.get("name") or f"{first_name} {last_name}".strip() or "Madame, Monsieur"
+    if not first_name and full_name and full_name != "Madame, Monsieur":
+        first_name = full_name.split()[0]
+        
+    role = contact.get("role") or contact.get("poste") or contact.get("title") or "Responsable Technique"
+    company = contact.get("company") or contact.get("entreprise") or contact.get("societe") or "votre entreprise"
+    industry = contact.get("industry") or contact.get("secteur") or ""
+    persona = classify_role_category(role)
+    salutation_name = first_name if first_name else "Madame, Monsieur"
+    
+    custom_block = f"\nDIRECTIVE SUPPLÉMENTAIRE : {custom_instruction}\n" if custom_instruction.strip() else ""
+
+    return f"""
+MODÈLE D'EMAIL DE RÉFÉRENCE FOURNI PAR MOHAMMED :
+\"\"\"
+{template_text}
+\"\"\"
+
+DONNÉES DU DESTINATAIRE CIBLE :
+- Prénom : {first_name}
+- Nom complet : {full_name}
+- Salutation à utiliser : {salutation_name}
+- Poste exact : {role} (Catégorie : {persona})
+- Société / Entreprise : {company}
+- Secteur d'activité : {industry}
+{custom_block}
+Adapte ce modèle de référence spécifiquement pour {salutation_name} chez {company}. 
+Remplace toutes les variables et personnalise les références à l'entreprise et à son secteur tout en conservant le style du modèle.
+
+FORMAT DE SORTIE JSON STRICT :
+```json
+{{
+  "subject": "Objet de l'email adapté",
+  "body_plain_text": "Texte complet de l'email adapté"
+}}
+```
+"""
+

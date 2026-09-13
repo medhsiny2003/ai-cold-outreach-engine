@@ -3,7 +3,13 @@ import re
 import httpx
 from typing import Dict, Any, Optional
 from config import LLMSettings, CandidateProfile
-from services.prompt_builder import build_system_prompt, build_user_prompt, determine_language
+from services.prompt_builder import (
+    build_system_prompt,
+    build_user_prompt,
+    determine_language,
+    build_template_adaptation_system_prompt,
+    build_template_adaptation_user_prompt
+)
 
 class GeneratedEmail:
     def __init__(self, subject: str, body: str, language: str):
@@ -432,4 +438,139 @@ async def generate_email_for_contact(
             theme=theme, 
             custom_instruction=custom_instruction
         )
+
+from services.prompt_builder import (
+    build_template_adaptation_system_prompt,
+    build_template_adaptation_user_prompt
+)
+
+def adapt_template_offline(template_text: str, contact: Dict[str, Any], profile: CandidateProfile, language: str) -> GeneratedEmail:
+    """Smart offline template adaptation replacing all variables, company references and placeholders."""
+    first_name = contact.get("first_name") or contact.get("prenom") or ""
+    name = contact.get("name") or contact.get("nom") or ""
+    if not first_name and name:
+        first_name = name.split()[0]
+    salutation_name = first_name if first_name else "Madame, Monsieur"
+    company = contact.get("company") or contact.get("entreprise") or contact.get("societe") or "votre entreprise"
+    role = contact.get("role") or contact.get("poste") or ""
+    
+    text = template_text
+    replacements = {
+        r"\[Prénom\]|\[Prenom\]|\{\{prenom\}\}|\{\{first_name\}\}": salutation_name,
+        r"\[Nom\]|\{\{nom\}\}|\{\{last_name\}\}": name,
+        r"\[Nom de l'entreprise\]|\[Entreprise\]|\[Société\]|\[Societe\]|\[Nom de l'organisme\]|\{\{entreprise\}\}|\{\{company\}\}": company,
+        r"\[Poste\]|\[Titre\]|\{\{poste\}\}|\{\{role\}\}": role,
+    }
+    for pattern, repl in replacements.items():
+        text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
+        
+    subject = "Stage PFE – Demande de conseil"
+    lines = text.split("\n")
+    body_lines = []
+    for line in lines:
+        if line.strip().lower().startswith(("objet :", "objet:", "subject :", "subject:")):
+            subject = re.sub(r"^(?:objet|subject)\s*:\s*", "", line, flags=re.IGNORECASE).strip()
+        else:
+            body_lines.append(line)
+            
+    body = "\n".join(body_lines).strip()
+    return GeneratedEmail(subject=subject, body=body, language=language)
+
+async def generate_email_from_template(
+    template_text: str,
+    contact: Dict[str, Any],
+    profile: CandidateProfile,
+    settings: LLMSettings,
+    forced_lang: Optional[str] = None,
+    custom_instruction: str = ""
+) -> GeneratedEmail:
+    """Adapts a user-provided template text to a specific contact using LLM (or offline fallback)."""
+    language = determine_language(contact, forced_lang)
+    
+    if not settings.api_key and settings.provider != "ollama":
+        return adapt_template_offline(template_text, contact, profile, language)
+        
+    system_prompt = build_template_adaptation_system_prompt()
+    user_prompt = build_template_adaptation_user_prompt(
+        template_text=template_text,
+        contact=contact,
+        profile=profile,
+        language=language,
+        custom_instruction=custom_instruction
+    )
+    
+    try:
+        if settings.provider == "gemini":
+            raw_text = await call_gemini_api(
+                api_key=settings.api_key,
+                model_name=settings.model_name or "gemini-2.0-flash",
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=settings.temperature
+            )
+        elif settings.provider == "openai":
+            base_url = settings.api_base_url or "https://api.openai.com/v1"
+            raw_text = await call_openai_compatible_api(
+                base_url=base_url,
+                api_key=settings.api_key,
+                model_name=settings.model_name or "gpt-4o-mini",
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=settings.temperature
+            )
+        elif settings.provider == "groq":
+            base_url = settings.api_base_url or "https://api.groq.com/openai/v1"
+            raw_text = await call_openai_compatible_api(
+                base_url=base_url,
+                api_key=settings.api_key,
+                model_name=settings.model_name or "llama-3.3-70b-versatile",
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=settings.temperature
+            )
+        elif settings.provider == "deepseek":
+            base_url = settings.api_base_url or "https://api.deepseek.com"
+            raw_text = await call_openai_compatible_api(
+                base_url=base_url,
+                api_key=settings.api_key,
+                model_name=settings.model_name or "deepseek-chat",
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=settings.temperature
+            )
+        elif settings.provider == "ollama":
+            base_url = settings.api_base_url or "http://localhost:11434/v1"
+            raw_text = await call_openai_compatible_api(
+                base_url=base_url,
+                api_key="ollama",
+                model_name=settings.model_name or "llama3.2",
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=settings.temperature
+            )
+        elif settings.provider == "openrouter":
+            base_url = settings.api_base_url or "https://openrouter.ai/api/v1"
+            raw_text = await call_openai_compatible_api(
+                base_url=base_url,
+                api_key=settings.api_key,
+                model_name=settings.model_name or "meta-llama/llama-3.3-70b-instruct",
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=settings.temperature
+            )
+        else:
+            raise ValueError(f"Unknown provider: {settings.provider}")
+            
+        parsed = clean_json_response(raw_text)
+        subject = parsed.get("subject", "").strip()
+        body = parsed.get("body_plain_text", parsed.get("body", "")).strip()
+        
+        if not subject or not body:
+            raise ValueError("Parsed JSON missing 'subject' or 'body_plain_text'")
+            
+        return GeneratedEmail(subject=subject, body=body, language=language)
+    except Exception as e:
+        print(f"[LLM Template Warning] Adapting template failed for {contact.get('email')}: {e}. Using offline replacement.")
+        return adapt_template_offline(template_text, contact, profile, language)
+
 
