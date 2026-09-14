@@ -30,7 +30,8 @@ try:
         load_llm_settings, save_llm_settings, get_all_contacts, save_or_update_contact,
         save_contacts_bulk, approve_all_contacts, clear_all_contacts, log_sent_email, get_all_sent_logs,
         get_all_recruiter_responses, mark_response_read, trigger_waterfall_retry_bounced,
-        delete_contact_by_id, delete_contacts_bulk, update_contacts_status_bulk, reset_all_data_and_contacts
+        delete_contact_by_id, delete_contacts_bulk, update_contacts_status_bulk, reset_all_data_and_contacts,
+        delete_contacts_by_status, reset_all_contacts_to_pending, reset_sent_and_bounced_to_pending, clear_sent_logs_history
     )
 except ImportError:
     from services.storage_service import (
@@ -45,6 +46,10 @@ except ImportError:
     def delete_contacts_bulk(cids): return 0
     def update_contacts_status_bulk(cids, st): return 0
     def reset_all_data_and_contacts(c_logs=False, c_up=False): pass
+    def delete_contacts_by_status(st_list): return 0
+    def reset_all_contacts_to_pending(): return 0
+    def reset_sent_and_bounced_to_pending(): return 0
+    def clear_sent_logs_history(): pass
 
 try:
     from services.email_validator import validate_single_email, validate_contacts_list
@@ -766,8 +771,46 @@ with tab2:
         # -------------------------------------------------------------
         # TABLEAU DES CONTACTS & SÉLECTION / EXCLUSION INTERACTIVE
         # -------------------------------------------------------------
-        st.subheader(f"📋 Liste Actuelle des Contacts ({len(contacts)} au total)")
-        
+        st.subheader(f"📋 Base Actuelle des Contacts ({len(contacts)} au total)")
+
+        # Direct Quick Management & Reset Toolbar
+        st.markdown("""
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px 18px; margin-bottom: 16px;">
+            <div style="font-weight: 700; color: #0F172A; font-size: 0.92rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-wand-magic-sparkles" style="color: #0F4C81;"></i> <span>Actions Globales & Réinitialisation du Processus :</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        col_rst1, col_rst2, col_rst3, col_rst4 = st.columns([1.2, 1.2, 1.2, 1.2])
+        with col_rst1:
+            if st.button("🔄 Relancer Tout (Reset -> Attente)", use_container_width=True, help="Remet tous les contacts en attente ('pending') pour relancer un cycle d'envoi complet"):
+                n = reset_all_contacts_to_pending()
+                st.success(f"🎉 {n} contacts remis en attente ('pending') !")
+                time.sleep(0.8)
+                st.rerun()
+        with col_rst2:
+            if st.button("🔄 Relancer Envoyés & Rejetés", use_container_width=True, help="Remet uniquement les contacts déjà envoyés ou rejetés en statut 'pending' pour retenter"):
+                n = reset_sent_and_bounced_to_pending()
+                st.success(f"🎉 {n} contacts (envoyés/rejetés) remis en attente !")
+                time.sleep(0.8)
+                st.rerun()
+        with col_rst3:
+            if st.button("🧹 Supprimer Envoyés & Rejetés", use_container_width=True, help="Supprime de la base les contacts déjà envoyés ou rejetés pour ne garder que les nouveaux non traités"):
+                n = delete_contacts_by_status(["sent", "bounced"])
+                st.success(f"🧹 {n} anciens contacts supprimés ! Base allégée.")
+                time.sleep(0.8)
+                st.rerun()
+        with col_rst4:
+            if st.button("🗑️ Vider Tous les Contacts", type="secondary", use_container_width=True, help="Supprime l'intégralité des contacts pour importer un nouveau fichier propre"):
+                clear_all_contacts()
+                if "validation_report" in st.session_state:
+                    del st.session_state["validation_report"]
+                st.warning("🗑️ Tous les contacts ont été effacés ! Vous pouvez importer un nouveau fichier.")
+                time.sleep(0.8)
+                st.rerun()
+
+        st.write("")
         # Filter & Search Toolbar
         col_st1, col_st2 = st.columns([2, 2])
         with col_st1:
@@ -809,7 +852,7 @@ with tab2:
         df_display = pd.DataFrame(display_list)[["id", "name", "email", "company", "role", "location", "industry", "status"]]
         st.dataframe(df_display, use_container_width=True)
 
-        st.markdown("##### 🎯 Sélection & Actions sur les Contacts")
+        st.markdown("##### 🎯 Sélection & Actions par Contact")
         contact_options = {c["id"]: f"#{c['id']} - {c.get('name') or c.get('email')} | {c.get('company', 'N/A')} [{c.get('status')}]" for c in display_list}
         selected_cids = st.multiselect(
             "Cochez un ou plusieurs contacts pour agir dessus :",
@@ -823,19 +866,19 @@ with tab2:
             if st.button("🚫 Exclure la sélection", use_container_width=True, disabled=not selected_cids, help="Marque les contacts sélectionnés comme 'excluded' (ne recevront aucun email)"):
                 updated = update_contacts_status_bulk(selected_cids, "excluded")
                 st.success(f"🚫 {updated} contact(s) exclu(s) de l'envoi !")
-                time.sleep(1)
+                time.sleep(0.8)
                 st.rerun()
         with col_act2:
             if st.button("✅ Réactiver la sélection", use_container_width=True, disabled=not selected_cids, help="Réintègre les contacts comme 'pending' pour être générés ou envoyés"):
                 updated = update_contacts_status_bulk(selected_cids, "pending")
                 st.success(f"✅ {updated} contact(s) réactivé(s) !")
-                time.sleep(1)
+                time.sleep(0.8)
                 st.rerun()
         with col_act3:
             if st.button("🗑️ Supprimer la sélection", type="secondary", use_container_width=True, disabled=not selected_cids, help="Supprime définitivement les contacts sélectionnés"):
                 deleted = delete_contacts_bulk(selected_cids)
                 st.success(f"🗑️ {deleted} contact(s) supprimé(s) !")
-                time.sleep(1)
+                time.sleep(0.8)
                 st.rerun()
         with col_act4:
             csv_export = pd.DataFrame(display_list).to_csv(index=False).encode('utf-8')
@@ -845,15 +888,15 @@ with tab2:
         # -------------------------------------------------------------
         # RÉINITIALISATION COMPLÈTE DE LA BASE DE CONTACTS & FICHIERS
         # -------------------------------------------------------------
-        with st.expander("⚠️ Réinitialisation Complète & Nettoyage de la Base", expanded=False):
-            st.warning("Cette action permet de vider l'ensemble des contacts de la base de données et de nettoyer les anciens fichiers temporaires d'importation.")
-            confirm_reset = st.checkbox("Je confirme vouloir réinitialiser et effacer la liste de contacts", key="chk_confirm_reset")
+        with st.expander("⚠️ Nettoyage Approfondi du Serveur & Fichiers Uploadés", expanded=False):
+            st.warning("Cette action permet de vider la base de données et de supprimer les anciens fichiers temporaires d'importation.")
+            confirm_reset = st.checkbox("Je confirme vouloir réinitialiser et nettoyer tous les fichiers temporaires", key="chk_confirm_reset")
             if st.button("🗑️ Réinitialiser Tout Maintenant", type="secondary", disabled=not confirm_reset):
                 reset_all_data_and_contacts(clear_sent_logs=False, clear_uploads=True)
                 if "validation_report" in st.session_state:
                     del st.session_state["validation_report"]
                 st.success("✅ Base de contacts réinitialisée et anciens fichiers nettoyés !")
-                time.sleep(1)
+                time.sleep(0.8)
                 st.rerun()
     else:
         st.info("Aucun contact chargé pour le moment. Vous pouvez charger le fichier d'exemple ou importer votre propre CSV/Excel.")
@@ -1582,7 +1625,16 @@ mohammedhsiny2@gmail.com"""
         st.dataframe(df_comp, use_container_width=True)
 
     st.divider()
-    st.subheader("📜 Historique des Envois")
+    col_hist_h1, col_hist_h2 = st.columns([3, 1])
+    with col_hist_h1:
+        st.subheader("📜 Historique des Envois")
+    with col_hist_h2:
+        if st.button("🗑️ Effacer l'Historique", use_container_width=True, help="Vide le journal d'historique des emails envoyés"):
+            clear_sent_logs_history()
+            st.success("Historique des envois effacé !")
+            time.sleep(0.5)
+            st.rerun()
+
     sent_logs = get_all_sent_logs()
     if sent_logs:
         df_logs = pd.DataFrame(sent_logs)

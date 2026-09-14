@@ -1,11 +1,13 @@
 # services/email_validator.py
 import re
 import socket
-from typing import Dict, Any, List, Optional, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Dict, Any, List, Optional, Tuple, Set
 
 __all__ = [
     'check_email_syntax',
     'check_domain_dns',
+    'preload_domains_dns',
     'validate_single_email',
     'validate_contacts_list',
     'DISPOSABLE_DOMAINS',
@@ -13,7 +15,7 @@ __all__ = [
 ]
 
 # Comprehensive Disposable / Temp Mail Domains
-DISPOSABLE_DOMAINS = {
+DISPOSABLE_DOMAINS: Set[str] = {
     'mailinator.com', '10minutemail.com', 'tempmail.com', 'guerrillamail.com',
     'throwawaymail.com', 'yopmail.com', 'trashmail.com', 'sharklasers.com',
     'getairmail.com', 'dispostable.com', 'crazymailing.com', 'fakeinbox.com',
@@ -21,7 +23,7 @@ DISPOSABLE_DOMAINS = {
 }
 
 # Common domain typos -> suggestions
-COMMON_TYPOS = {
+COMMON_TYPOS: Dict[str, str] = {
     'gmial.com': 'gmail.com',
     'gmai.com': 'gmail.com',
     'gamil.com': 'gmail.com',
@@ -34,8 +36,17 @@ COMMON_TYPOS = {
     'outlok.com': 'outlook.com',
 }
 
-# Domain DNS resolution cache
-_DNS_CACHE: Dict[str, bool] = {}
+# Domain DNS resolution in-memory cache
+_DNS_CACHE: Dict[str, bool] = {
+    'gmail.com': True,
+    'google.com': True,
+    'outlook.com': True,
+    'hotmail.com': True,
+    'yahoo.com': True,
+    'yahoo.fr': True,
+    'live.com': True,
+    'icloud.com': True
+}
 
 # RFC 5322 Compliant Email Regex
 EMAIL_REGEX = re.compile(
@@ -83,20 +94,47 @@ def check_email_syntax(email: str) -> Tuple[bool, str]:
         
     return True, 'Syntaxe valide'
 
-def check_domain_dns(domain: str) -> bool:
+def check_domain_dns(domain: str, timeout: float = 1.5) -> bool:
     domain_clean = domain.strip().lower()
     
     if domain_clean in _DNS_CACHE:
         return _DNS_CACHE[domain_clean]
         
     try:
-        socket.setdefaulttimeout(3.0)
+        orig_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(timeout)
         socket.gethostbyname(domain_clean)
+        socket.setdefaulttimeout(orig_timeout)
         _DNS_CACHE[domain_clean] = True
         return True
     except Exception:
         _DNS_CACHE[domain_clean] = False
         return False
+
+def preload_domains_dns(domains: List[str], max_workers: int = 30) -> Dict[str, bool]:
+    """Resolves multiple unique domains concurrently in parallel to prevent any UI blocking."""
+    to_resolve = [d.strip().lower() for d in domains if d and d.strip().lower() not in _DNS_CACHE]
+    if not to_resolve:
+        return _DNS_CACHE
+
+    def _resolve(d: str):
+        try:
+            socket.gethostbyname(d)
+            return d, True
+        except Exception:
+            return d, False
+
+    with ThreadPoolExecutor(max_workers=min(max_workers, len(to_resolve) or 1)) as executor:
+        futures = {executor.submit(_resolve, d): d for d in to_resolve}
+        for future in as_completed(futures):
+            try:
+                dom, is_ok = future.result()
+                _DNS_CACHE[dom] = is_ok
+            except Exception:
+                dom = futures[future]
+                _DNS_CACHE[dom] = False
+
+    return _DNS_CACHE
 
 def validate_single_email(email: str, check_dns: bool = True) -> Dict[str, Any]:
     clean_e = (email or '').strip().lower()
@@ -155,6 +193,30 @@ def validate_single_email(email: str, check_dns: bool = True) -> Dict[str, Any]:
     }
 
 def validate_contacts_list(contacts: List[Dict[str, Any]], check_dns: bool = True) -> Dict[str, Any]:
+    """High-speed concurrent validation of contacts list."""
+    if not contacts:
+        return {
+            'total': 0,
+            'valid_count': 0,
+            'invalid_count': 0,
+            'valid_contacts': [],
+            'invalid_contacts': [],
+            'details': []
+        }
+
+    # Step 1: Extract all unique domains and pre-resolve concurrently in parallel
+    if check_dns:
+        unique_domains = set()
+        for c in contacts:
+            e = (c.get('email') or '').strip().lower()
+            if '@' in e:
+                parts = e.split('@', 1)
+                if len(parts) == 2 and '.' in parts[1]:
+                    unique_domains.add(parts[1].strip())
+        if unique_domains:
+            preload_domains_dns(list(unique_domains), max_workers=35)
+
+    # Step 2: Instant in-memory evaluation
     valid_list = []
     invalid_list = []
     details = []

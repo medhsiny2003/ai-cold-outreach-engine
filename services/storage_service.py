@@ -411,6 +411,38 @@ def update_contacts_status_bulk(contact_ids: List[int], new_status: str) -> int:
         conn.commit()
         return cur.rowcount
 
+def delete_contacts_by_status(status_list: List[str]) -> int:
+    """Deletes contacts that match specific statuses (e.g. ['sent'], ['bounced'], ['excluded'])."""
+    if not status_list:
+        return 0
+    with get_db_connection() as conn:
+        placeholders = ",".join("?" * len(status_list))
+        cur = conn.execute(f"DELETE FROM contacts WHERE status IN ({placeholders})", status_list)
+        conn.commit()
+        return cur.rowcount
+
+def reset_all_contacts_to_pending() -> int:
+    """Resets all contacts in the database to 'pending' to restart outreach cycles."""
+    now = time.time()
+    with get_db_connection() as conn:
+        cur = conn.execute("UPDATE contacts SET status = 'pending', updated_at = ?", (now,))
+        conn.commit()
+        return cur.rowcount
+
+def reset_sent_and_bounced_to_pending() -> int:
+    """Resets only sent and bounced contacts back to 'pending' to retry campaigns."""
+    now = time.time()
+    with get_db_connection() as conn:
+        cur = conn.execute("UPDATE contacts SET status = 'pending', updated_at = ? WHERE status IN ('sent', 'bounced')", (now,))
+        conn.commit()
+        return cur.rowcount
+
+def clear_sent_logs_history():
+    """Clears sent logs history."""
+    with get_db_connection() as conn:
+        conn.execute("DELETE FROM sent_logs")
+        conn.commit()
+
 def reset_all_data_and_contacts(clear_sent_logs: bool = False, clear_uploads: bool = False):
     """Resets the contacts table and optionally sent logs and uploads."""
     with get_db_connection() as conn:
