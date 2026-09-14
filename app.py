@@ -74,12 +74,22 @@ try:
         determine_language,
         classify_role_category,
         get_target_subject,
+        substitute_placeholders,
         build_system_prompt,
         build_user_prompt,
         build_template_adaptation_system_prompt,
         build_template_adaptation_user_prompt
     )
 except ImportError:
+    def substitute_placeholders(text, name="", company="", role="", language="fr"):
+        n = name or ""
+        fn = n.split()[0] if n else ""
+        c = company or "votre entreprise"
+        import re
+        t = re.sub(r"\[(?:Prénom|Prenom)\]|\{\{?prenom\}?\}", fn, text, flags=re.I)
+        t = re.sub(r"\[(?:Nom)\]|\{\{?nom\}?\}", n, t, flags=re.I)
+        t = re.sub(r"\[(?:Entreprise|Société|Societe|Company)\]|\{\{?entreprise|company\}?\}", c, t, flags=re.I)
+        return t
     THEMES_CATALOG = {
         "auto": {"label": "🎯 Auto-détection IA", "description": "Auto", "focus_fr": "génie électrique, contrôle commande, robotique", "focus_en": "electrical, control, robotics", "tagline_fr": "Élève-ingénieur", "tagline_en": "Engineering student"},
         "drones_robotics": {"label": "🛸 Focus Drones & Robotique", "description": "Drones", "focus_fr": "systèmes autonomes, ROS, vision", "focus_en": "autonomous systems, ROS", "tagline_fr": "Élève-ingénieur", "tagline_en": "Engineering student"},
@@ -1508,11 +1518,11 @@ with tab4:
 # -------------------------------------------------------------
 # TAB MANUAL: Mode Envoi Manuel Direct & Rendu HTML / CSS
 # -------------------------------------------------------------
+# TAB 5 (Manual Mode): Envoi Manuel Direct
+# -------------------------------------------------------------
 with tab_manual:
     st.header("✉️ Mode Envoi Manuel Direct (Rendu HTML / CSS & Signature)")
-    st.markdown("""
-    Rédigez ou collez manuellement un email pour un contact précis. Votre message est **automatiquement habillé du design HTML/CSS haut de gamme**, avec la typographie optimisée, le bouton CTA de votre portfolio, les pièces jointes et la carte de signature complète (RoboThings FSTM, LinkedIn, coordonnées).
-    """)
+    st.info("💡 **Adaptation automatique :** Vous n'avez pas besoin d'écrire obligatoirement des accolades ! Vous pouvez taper votre texte normalement, utiliser le bouton **« 🤖 Rédiger avec l'IA pour ce contact »**, ou insérer des balises comme `{Entreprise}` / `[Entreprise]` et `{Prénom}` / `[Prénom]` qui seront automatiquement remplacées.")
 
     col_man1, col_man2 = st.columns([1.5, 1.5])
     
@@ -1642,16 +1652,74 @@ Best regards,"""
         )
         st.session_state["manual_custom_body"] = man_body_val
 
-        col_b_act1, col_b_act2 = st.columns(2)
+        col_b_act1, col_b_act2, col_b_act3 = st.columns([1.3, 1.3, 1.2])
         with col_b_act1:
-            if st.button("🔄 Actualiser avec les coordonnées saisies", use_container_width=True, key="btn_refresh_manual_text"):
+            if st.button("🤖 Rédiger avec l'IA pour ce contact", type="primary", use_container_width=True, key="btn_ai_gen_manual"):
+                dummy_contact = {
+                    "email": man_email.strip() or "contact@example.com",
+                    "name": man_name.strip(),
+                    "company": man_company.strip(),
+                    "role": man_role.strip(),
+                    "language": man_lang
+                }
+                with st.spinner("🤖 Génération IA en cours selon le profil et l'entreprise..."):
+                    async def run_single_man_ai():
+                        return await generate_email_for_contact(
+                            contact=dummy_contact,
+                            profile=profile,
+                            settings=llm,
+                            forced_lang=man_lang,
+                            theme="auto",
+                            tone="persuasive_tech"
+                        )
+                    res_man_ai = asyncio.run(run_single_man_ai())
+                    st.session_state["manual_custom_body"] = res_man_ai.body
+                    st.session_state["man_subj_val"] = res_man_ai.subject
+                    st.success("✅ Email et objet générés sur-mesure par l'IA !")
+                    time.sleep(0.5)
+                    st.rerun()
+
+        with col_b_act2:
+            if st.button("⚡ Remplacer variables ({Entreprise}, etc.)", use_container_width=True, key="btn_subst_manual_vars"):
+                replaced_body = substitute_placeholders(
+                    man_body_val,
+                    name=man_name,
+                    company=man_company,
+                    role=man_role,
+                    language=man_lang
+                )
+                replaced_subj = substitute_placeholders(
+                    man_subject,
+                    name=man_name,
+                    company=man_company,
+                    role=man_role,
+                    language=man_lang
+                )
+                st.session_state["manual_custom_body"] = replaced_body
+                st.session_state["man_subj_val"] = replaced_subj
+                st.toast("✅ Variables [Entreprise], {Entreprise}, [Prénom] remplacées !", icon="⚡")
+                st.rerun()
+
+        with col_b_act3:
+            if st.button("🔄 Réinitialiser modèle", use_container_width=True, key="btn_refresh_manual_text"):
                 st.session_state["manual_custom_body"] = sample_body
                 st.rerun()
-        with col_b_act2:
-            if st.button("🌐 Insérer Lien Portfolio CTA", use_container_width=True, key="btn_insert_portfolio_manual"):
-                if "https://portfolio-mohammed-hsiny-ux7z.vercel.app" not in man_body_val:
-                    st.session_state["manual_custom_body"] = man_body_val + "\n\nhttps://portfolio-mohammed-hsiny-ux7z.vercel.app/"
-                    st.rerun()
+
+    # Pre-process content with fail-safe variable replacement
+    final_preview_body = substitute_placeholders(
+        man_body_val,
+        name=man_name,
+        company=man_company,
+        role=man_role,
+        language=man_lang
+    )
+    final_preview_subj = substitute_placeholders(
+        man_subject,
+        name=man_name,
+        company=man_company,
+        role=man_role,
+        language=man_lang
+    )
 
     with col_prev:
         st.markdown("##### 👁️ 5. Aperçu Réel du Rendu HTML / CSS")
@@ -1659,7 +1727,7 @@ Best regards,"""
         
         # Build professional HTML
         html_rendered = build_professional_html(
-            body_text=man_body_val,
+            body_text=final_preview_body,
             profile=profile,
             language=man_lang,
             include_logo=True
@@ -1690,7 +1758,7 @@ Best regards,"""
             st.error("⚠️ Veuillez renseigner une adresse email destinataire valide.")
         elif not smtp.app_password:
             st.error("⚠️ Mot de passe d'application Gmail manquant. Configurez-le dans l'onglet Paramètres.")
-        elif not man_body_val.strip():
+        elif not final_preview_body.strip():
             st.error("⚠️ Le corps du message est vide.")
         else:
             # Build attachments list
@@ -1706,8 +1774,8 @@ Best regards,"""
                 res_send = send_single_email(
                     settings=smtp,
                     recipient_email=man_email.strip(),
-                    subject=man_subject.strip(),
-                    body_text=man_body_val,
+                    subject=final_preview_subj.strip(),
+                    body_text=final_preview_body,
                     attachment_paths=man_attachments,
                     profile=profile,
                     language=man_lang
@@ -1716,7 +1784,7 @@ Best regards,"""
             if res_send.success:
                 st.balloons()
                 st.success(f"🎉 Email envoyé avec succès à **{man_email}** avec le template HTML et {len(man_attachments)} pièce(s) jointe(s) !")
-                log_sent_email(man_email.strip(), man_subject.strip(), man_body_val, "SUCCESS")
+                log_sent_email(man_email.strip(), final_preview_subj.strip(), final_preview_body, "SUCCESS")
                 
                 if save_to_contacts_db:
                     save_or_update_contact({
@@ -1725,8 +1793,8 @@ Best regards,"""
                         "company": man_company.strip(),
                         "role": man_role.strip(),
                         "status": "sent",
-                        "subject": man_subject.strip(),
-                        "body": man_body_val,
+                        "subject": final_preview_subj.strip(),
+                        "body": final_preview_body,
                         "language": man_lang,
                         "notes": "Envoi direct via Mode Manuel"
                     })

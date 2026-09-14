@@ -10,11 +10,54 @@ __all__ = [
     "determine_language",
     "classify_role_category",
     "get_target_subject",
+    "substitute_placeholders",
     "build_system_prompt",
     "build_user_prompt",
     "build_template_adaptation_system_prompt",
     "build_template_adaptation_user_prompt",
 ]
+
+def substitute_placeholders(
+    text: str,
+    name: str = "",
+    company: str = "",
+    role: str = "",
+    language: str = "fr"
+) -> str:
+    """Replaces all variations of placeholders ([Entreprise], {Entreprise}, {{Entreprise}}, [Prénom], {Prenom}, etc.)
+    with actual values cleanly and safely.
+    """
+    if not text:
+        return ""
+    
+    clean_name = (name or "").strip()
+    first_name = clean_name.split()[0].capitalize() if clean_name else ("" if language == "fr" else "")
+    salutation_name = first_name if first_name else ("Madame, Monsieur" if language == "fr" else "Hiring Team")
+    
+    clean_company = (company or "").strip()
+    if not clean_company or clean_company.lower() in ["votre entreprise", "n/a", "none", "null"]:
+        clean_company = "votre entreprise" if language == "fr" else "your company"
+        
+    clean_role = (role or "").strip()
+    if not clean_role:
+        clean_role = "Responsable" if language == "fr" else "Hiring Manager"
+
+    replacements = [
+        # Prénom / First name
+        (r"\[(?:Prénom|Prenom|First\s*Name|FirstName)\]|\{\{?(?:prenom|prénom|first_name)\}?\}", first_name if first_name else salutation_name),
+        # Nom complet / Last name
+        (r"\[(?:Nom|Nom\s+complet|Last\s*Name|LastName|Full\s*Name)\]|\{\{?(?:nom|nom_complet|last_name|full_name|name)\}?\}", clean_name if clean_name else salutation_name),
+        # Entreprise / Company / Société
+        (r"\[(?:Nom\s+de\s+l['’]entreprise|Entreprise|Société|Societe|Company|Organization|Nom\s+de\s+l['’]organisme)\]|\{\{?(?:entreprise|societe|société|company|organization)\}?\}", clean_company),
+        # Poste / Rôle / Title
+        (r"\[(?:Poste|Titre|Rôle|Role|Title|Job\s*Title)\]|\{\{?(?:poste|titre|role|rôle|title)\}?\}", clean_role),
+    ]
+
+    result = text
+    for pattern, repl in replacements:
+        result = re.sub(pattern, repl, result, flags=re.IGNORECASE)
+
+    return result
 
 THEMES_CATALOG = {
     "auto": {

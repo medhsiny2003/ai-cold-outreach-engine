@@ -12,6 +12,7 @@ from services.prompt_builder import (
     classify_role_category,
     detect_best_theme_for_company,
     get_target_subject,
+    substitute_placeholders,
     THEMES_CATALOG,
     WRITING_STYLES,
 )
@@ -484,21 +485,14 @@ def adapt_template_offline(template_text: str, contact: Dict[str, Any], profile:
             if match and match.group(1).strip():
                 text = match.group(1).strip()
 
-    # Dynamic Variable Replacements
-    replacements = {
-        r"\[Prénom\]|\[Prenom\]|\{\{prenom\}\}|\{\{first_name\}\}": salutation_name,
-        r"\[Nom\]|\{\{nom\}\}|\{\{last_name\}\}": name if name else salutation_name,
-        r"\[Nom de l'entreprise\]|\[Entreprise\]|\[Société\]|\[Societe\]|\[Nom de l'organisme\]|\{\{entreprise\}\}|\{\{company\}\}": company,
-        r"\[Poste\]|\[Titre\]|\{\{poste\}\}|\{\{role\}\}": role,
-    }
-    for pattern, repl in replacements.items():
-        text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
+    # Dynamic Variable Replacements (Supports [Entreprise], {Entreprise}, {{entreprise}}, [Prénom], etc.)
+    text = substitute_placeholders(text, name=name, company=company, role=role, language=language)
         
     # Replace static greeting like "Bonjour Bruno," or "Bonjour Alexandre," with current contact's salutation
     text = re.sub(r"^(?:Bonjour|Bonsoir|Hi|Hello)\s+[A-Za-zÀ-ÿ-]+,", f"Bonjour {salutation_name}," if language == 'fr' else f"Hi {salutation_name},", text, flags=re.MULTILINE)
     
     # Replace previous static company names like "Shark Robotics" if company is different
-    if company and company.lower() != "shark robotics":
+    if company and company.lower() not in ["shark robotics", "votre entreprise"]:
         text = re.sub(r"\bShark\s+Robotics\b", company, text, flags=re.IGNORECASE)
         
     # Extract Subject Line
@@ -512,8 +506,8 @@ def adapt_template_offline(template_text: str, contact: Dict[str, Any], profile:
         if stripped.lower().startswith(("objet :", "objet:", "subject :", "subject:")):
             extracted_subj = re.sub(r"^(?:objet|subject)\s*:\s*", "", stripped, flags=re.IGNORECASE).strip()
             if extracted_subj:
-                extracted_subj = re.sub(r"\[Nom de l'entreprise\]|\[Entreprise\]|\[Société\]|\[Societe\]|Shark Robotics", company, extracted_subj, flags=re.IGNORECASE)
-                extracted_subj = re.sub(r"\[Prénom\]|\[Prenom\]", salutation_name, extracted_subj, flags=re.IGNORECASE)
+                extracted_subj = substitute_placeholders(extracted_subj, name=name, company=company, role=role, language=language)
+                extracted_subj = re.sub(r"\bShark\s+Robotics\b", company, extracted_subj, flags=re.IGNORECASE)
                 subject = extracted_subj
         elif stripped.lower() in ["text", "```", "```text", "```markdown"]:
             continue
