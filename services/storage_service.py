@@ -162,6 +162,8 @@ def load_smtp_settings() -> SMTPSettings:
                 
     if settings is None:
         settings = SMTPSettings()
+        
+    if not settings.app_password:
         env_pwd = os.getenv("GMAIL_APP_PASSWORD", "").strip()
         if not env_pwd:
             try:
@@ -169,8 +171,6 @@ def load_smtp_settings() -> SMTPSettings:
                 env_pwd = st.secrets.get("GMAIL_APP_PASSWORD", "").strip()
             except Exception:
                 pass
-        if not env_pwd:
-            env_pwd = "bmkk yxnz zzsi kjqe"
         if env_pwd:
             settings.app_password = env_pwd
             
