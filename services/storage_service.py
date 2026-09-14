@@ -139,6 +139,38 @@ def load_profile() -> CandidateProfile:
                 return CandidateProfile()
     return CandidateProfile()
 
+def update_env_file(key_values: Dict[str, str]):
+    """Safely updates or appends key=value pairs in the local .env file."""
+    try:
+        env_path = BASE_DIR / ".env"
+        lines = []
+        if env_path.is_file():
+            try:
+                lines = env_path.read_text(encoding="utf-8").splitlines()
+            except Exception:
+                lines = []
+                
+        updated_keys = set()
+        new_lines = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped and not stripped.startswith("#") and "=" in stripped:
+                k, _ = stripped.split("=", 1)
+                k = k.strip()
+                if k in key_values:
+                    new_lines.append(f"{k}={key_values[k]}")
+                    updated_keys.add(k)
+                    continue
+            new_lines.append(line)
+            
+        for k, v in key_values.items():
+            if k not in updated_keys:
+                new_lines.append(f"{k}={v}")
+                
+        env_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+    except Exception:
+        pass
+
 def save_smtp_settings(settings: SMTPSettings):
     with get_db_connection() as conn:
         conn.execute("""
@@ -146,6 +178,17 @@ def save_smtp_settings(settings: SMTPSettings):
             VALUES (1, ?, ?)
         """, (settings.model_dump_json(), time.time()))
         conn.commit()
+        
+    # Keep os.environ & local .env in sync for background workers & multi-session persistence
+    if settings.app_password:
+        os.environ["GMAIL_APP_PASSWORD"] = settings.app_password
+    if settings.sender_email:
+        os.environ["GMAIL_SENDER_EMAIL"] = settings.sender_email
+        
+    update_env_file({
+        "GMAIL_APP_PASSWORD": settings.app_password,
+        "GMAIL_SENDER_EMAIL": settings.sender_email
+    })
 
 def load_smtp_settings() -> SMTPSettings:
     settings = None
@@ -163,16 +206,46 @@ def load_smtp_settings() -> SMTPSettings:
     if settings is None:
         settings = SMTPSettings()
         
-    if not settings.app_password:
-        env_pwd = os.getenv("GMAIL_APP_PASSWORD", "").strip()
-        if not env_pwd:
+    # Resolve app_password if empty in SQLite DB
+    if not settings.app_password or not settings.app_password.strip():
+        for env_k in ["GMAIL_APP_PASSWORD", "GMAIL_PASSWORD", "APP_PASSWORD", "EMAIL_PASSWORD"]:
+            val = os.getenv(env_k, "").strip()
+            if val:
+                settings.app_password = val
+                break
+                
+        if not settings.app_password:
             try:
                 import streamlit as st
-                env_pwd = st.secrets.get("GMAIL_APP_PASSWORD", "").strip()
+                for sec_k in ["GMAIL_APP_PASSWORD", "gmail_app_password", "GMAIL_PASSWORD", "gmail_password", "APP_PASSWORD", "app_password"]:
+                    if sec_k in st.secrets:
+                        val = str(st.secrets[sec_k]).strip()
+                        if val:
+                            settings.app_password = val
+                            break
             except Exception:
                 pass
-        if env_pwd:
-            settings.app_password = env_pwd
+                
+        # If successfully retrieved from environment or secrets, persist back into DB
+        if settings.app_password and settings.app_password.strip():
+            try:
+                with get_db_connection() as conn:
+                    conn.execute("""
+                        INSERT OR REPLACE INTO smtp_settings (id, data_json, updated_at)
+                        VALUES (1, ?, ?)
+                    """, (settings.model_dump_json(), time.time()))
+                    conn.commit()
+            except Exception:
+                pass
+
+    if not settings.sender_email or not settings.sender_email.strip():
+        settings.sender_email = os.getenv("GMAIL_SENDER_EMAIL", "mohammedhsiny2@gmail.com")
+        try:
+            import streamlit as st
+            if "GMAIL_SENDER_EMAIL" in st.secrets:
+                settings.sender_email = str(st.secrets["GMAIL_SENDER_EMAIL"]).strip()
+        except Exception:
+            pass
             
     return settings
 
@@ -183,16 +256,57 @@ def save_llm_settings(settings: LLMSettings):
             VALUES (1, ?, ?)
         """, (settings.model_dump_json(), time.time()))
         conn.commit()
+        
+    if settings.api_key:
+        os.environ["GEMINI_API_KEY"] = settings.api_key
+        update_env_file({
+            "GEMINI_API_KEY": settings.api_key
+        })
 
 def load_llm_settings() -> LLMSettings:
+    settings = None
     with get_db_connection() as conn:
         row = conn.execute("SELECT data_json FROM llm_settings WHERE id = 1").fetchone()
         if row:
             try:
-                return LLMSettings.model_validate_json(row["data_json"])
+                settings = LLMSettings.model_validate_json(row["data_json"])
             except Exception:
-                return LLMSettings()
-    return LLMSettings()
+                settings = None
+                
+    if settings is None:
+        settings = LLMSettings()
+        
+    if not settings.api_key or not settings.api_key.strip():
+        for env_k in ["GEMINI_API_KEY", "OPENAI_API_KEY", "GROQ_API_KEY", "API_KEY"]:
+            val = os.getenv(env_k, "").strip()
+            if val:
+                settings.api_key = val
+                break
+                
+        if not settings.api_key:
+            try:
+                import streamlit as st
+                for sec_k in ["GEMINI_API_KEY", "gemini_api_key", "API_KEY", "api_key"]:
+                    if sec_k in st.secrets:
+                        val = str(st.secrets[sec_k]).strip()
+                        if val:
+                            settings.api_key = val
+                            break
+            except Exception:
+                pass
+                
+        if settings.api_key and settings.api_key.strip():
+            try:
+                with get_db_connection() as conn:
+                    conn.execute("""
+                        INSERT OR REPLACE INTO llm_settings (id, data_json, updated_at)
+                        VALUES (1, ?, ?)
+                    """, (settings.model_dump_json(), time.time()))
+                    conn.commit()
+            except Exception:
+                pass
+                
+    return settings
 
 def save_or_update_contact(contact: Dict[str, Any]):
     with get_db_connection() as conn:

@@ -371,12 +371,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Load state from DB
+# Load state from DB & Environment
 if "profile" not in st.session_state:
     st.session_state.profile = load_profile()
-if "smtp" not in st.session_state:
+if "smtp" not in st.session_state or not getattr(st.session_state.smtp, "app_password", None):
     st.session_state.smtp = load_smtp_settings()
-if "llm" not in st.session_state:
+if "llm" not in st.session_state or not getattr(st.session_state.llm, "api_key", None):
     st.session_state.llm = load_llm_settings()
 
 profile = st.session_state.profile
@@ -1865,11 +1865,12 @@ with tab7:
                 if cfg_app_pwd.strip():
                     smtp.app_password = cfg_app_pwd.strip()
                 save_smtp_settings(smtp)
+                st.session_state.smtp = smtp
                 if smtp.app_password:
-                    st.success("✅ Paramètres Gmail sauvegardés avec succès !")
+                    st.success("✅ Paramètres Gmail sauvegardés de façon permanente !")
                 else:
                     st.warning("⚠️ Compte enregistré en mode déconnecté (mot de passe vide).")
-                time.sleep(1)
+                time.sleep(0.8)
                 st.rerun()
         with col_btn2:
             if st.button("🔍 Tester la connexion", use_container_width=True):
@@ -1878,6 +1879,7 @@ with tab7:
                 if cfg_app_pwd.strip():
                     smtp.app_password = cfg_app_pwd.strip()
                 save_smtp_settings(smtp)
+                st.session_state.smtp = smtp
                 res_test = test_smtp_connection(smtp)
                 if res_test["success"]:
                     st.success(f"✅ {res_test['message']}")
@@ -1905,4 +1907,31 @@ with tab7:
             if cfg_api_key.strip():
                 llm.api_key = cfg_api_key.strip()
             save_llm_settings(llm)
-            st.success("Clé API enregistrée avec succès !")
+            st.session_state.llm = llm
+            st.success("✅ Clé API enregistrée et synchronisée avec succès !")
+            time.sleep(0.8)
+            st.rerun()
+
+    st.divider()
+    st.markdown("""
+    <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 18px 22px; margin-top: 15px;">
+        <div style="font-weight: 700; color: #0F4C81; font-size: 1.05rem; margin-bottom: 8px;">
+            ☁️ Sauvegarde Permanente sur Streamlit Cloud (Zéro Reconnexion Requise)
+        </div>
+        <p style="color: #475569; font-size: 0.9rem; margin-bottom: 10px; line-height: 1.5;">
+            Sur <b>Streamlit Community Cloud</b>, les conteneurs redémarrent automatiquement après inactivité. Pour que votre compte Gmail et vos clés restent <b>définitivement sauvegardés</b> sans jamais avoir à les retaper :
+        </p>
+        <ol style="color: #334155; font-size: 0.88rem; margin-left: 20px; line-height: 1.6;">
+            <li>Dans votre tableau de bord Streamlit Cloud, cliquez sur <b>Manage app</b> (en bas à droite) ➔ <b>Settings</b> ➔ <b>Secrets</b>.</li>
+            <li>Collez le bloc suivant et cliquez sur <b>Save</b> :</li>
+        </ol>
+        <pre style="background: #0f172a; color: #38bdf8; padding: 12px 16px; border-radius: 8px; font-size: 0.85rem; margin-top: 10px; overflow-x: auto;">
+GMAIL_SENDER_EMAIL = "mohammedhsiny2@gmail.com"
+GMAIL_APP_PASSWORD = "{}"
+SECURITY_PIN = "19748403"
+GEMINI_API_KEY = "{}"</pre>
+    </div>
+    """.format(
+        smtp.app_password if smtp.app_password else "votre_mot_de_passe_application_16_lettres",
+        llm.api_key if llm.api_key else "votre_cle_gemini_ici"
+    ), unsafe_allow_html=True)
