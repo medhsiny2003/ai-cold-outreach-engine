@@ -595,71 +595,98 @@ with tab1:
     with col_cv1:
         st.markdown("##### 📄 CV Français (PDF)")
         cv_fr_file = UPLOADS_DIR / "CV_Mohammed_HSINY_FR.pdf"
-        if cv_fr_file.is_file():
-            st.success("✅ Actif : `CV_Mohammed_HSINY_FR.pdf`")
-            with open(cv_fr_file, "rb") as f_fr:
-                st.download_button("👁️ Télécharger / Vérifier (FR)", f_fr.read(), "CV_Mohammed_HSINY_FR.pdf", "application/pdf", key="dl_cv_fr", use_container_width=True)
+        if cv_fr_file.is_file() and cv_fr_file.stat().st_size > 0:
+            size_kb = cv_fr_file.stat().st_size // 1024
+            st.success(f"✅ Actif : `CV_Mohammed_HSINY_FR.pdf` ({size_kb} Ko)")
+            st.download_button(
+                "👁️ Télécharger / Vérifier (FR)",
+                cv_fr_file.read_bytes(),
+                "CV_Mohammed_HSINY_FR.pdf",
+                "application/pdf",
+                key="dl_cv_fr",
+                use_container_width=True
+            )
         else:
             st.warning("⚠️ Aucun CV français actuellement.")
         up_cv_fr = st.file_uploader("Remplacer le CV Français", type=["pdf"], key="up_cv_fr")
         if up_cv_fr is not None:
-            with open(cv_fr_file, "wb") as f_out:
-                f_out.write(up_cv_fr.getbuffer())
-            try:
-                profile.cv_fr_path = str(cv_fr_file)
-            except Exception:
-                pass
-            save_profile(profile)
-            st.session_state.profile = profile
-            st.success("🎉 CV Français mis à jour et sauvegardé avec succès !")
-            time.sleep(0.8)
-            st.rerun()
+            fr_bytes = up_cv_fr.getvalue()
+            fr_hash = hash(fr_bytes)
+            if st.session_state.get("_uploaded_cv_fr_hash") != fr_hash:
+                cv_fr_file.write_bytes(fr_bytes)
+                st.session_state["_uploaded_cv_fr_hash"] = fr_hash
+                try:
+                    profile.cv_fr_path = str(cv_fr_file)
+                except Exception:
+                    pass
+                save_profile(profile)
+                st.session_state.profile = profile
+                st.toast("🎉 CV Français mis à jour et sauvegardé !", icon="✅")
+                st.rerun()
 
     with col_cv2:
         st.markdown("##### 📄 CV Anglais (PDF)")
         cv_en_file = UPLOADS_DIR / "CV_Mohammed_HSINY_EN.pdf"
-        if cv_en_file.is_file():
-            st.success("✅ Actif : `CV_Mohammed_HSINY_EN.pdf`")
-            with open(cv_en_file, "rb") as f_en:
-                st.download_button("👁️ Télécharger / Vérifier (EN)", f_en.read(), "CV_Mohammed_HSINY_EN.pdf", "application/pdf", key="dl_cv_en", use_container_width=True)
+        if cv_en_file.is_file() and cv_en_file.stat().st_size > 0:
+            size_kb = cv_en_file.stat().st_size // 1024
+            st.success(f"✅ Actif : `CV_Mohammed_HSINY_EN.pdf` ({size_kb} Ko)")
+            st.download_button(
+                "👁️ Télécharger / Vérifier (EN)",
+                cv_en_file.read_bytes(),
+                "CV_Mohammed_HSINY_EN.pdf",
+                "application/pdf",
+                key="dl_cv_en",
+                use_container_width=True
+            )
         else:
             st.warning("⚠️ Aucun CV anglais actuellement.")
         up_cv_en = st.file_uploader("Remplacer le CV Anglais", type=["pdf"], key="up_cv_en")
         if up_cv_en is not None:
-            with open(cv_en_file, "wb") as f_out:
-                f_out.write(up_cv_en.getbuffer())
-            try:
-                profile.cv_en_path = str(cv_en_file)
-            except Exception:
-                pass
-            save_profile(profile)
-            st.session_state.profile = profile
-            st.success("🎉 CV Anglais mis à jour et sauvegardé avec succès !")
-            time.sleep(0.8)
-            st.rerun()
+            en_bytes = up_cv_en.getvalue()
+            en_hash = hash(en_bytes)
+            if st.session_state.get("_uploaded_cv_en_hash") != en_hash:
+                cv_en_file.write_bytes(en_bytes)
+                st.session_state["_uploaded_cv_en_hash"] = en_hash
+                try:
+                    profile.cv_en_path = str(cv_en_file)
+                except Exception:
+                    pass
+                save_profile(profile)
+                st.session_state.profile = profile
+                st.toast("🎉 CV Anglais mis à jour et sauvegardé !", icon="✅")
+                st.rerun()
 
     with col_cv3:
         st.markdown("##### 💼 Portfolio PDF")
         portfolio_file = UPLOADS_DIR / "Portfolio_Mohammed_HSINY.pdf"
-        if portfolio_file.is_file():
-            st.success("✅ Actif : `Portfolio_Mohammed_HSINY.pdf`")
-            with open(portfolio_file, "rb") as f_pf:
-                st.download_button("👁️ Télécharger / Vérifier (Portfolio)", f_pf.read(), "Portfolio_Mohammed_HSINY.pdf", "application/pdf", key="dl_portfolio_pdf", use_container_width=True)
+        if portfolio_file.is_file() and portfolio_file.stat().st_size > 0:
+            size_kb = portfolio_file.stat().st_size // 1024
+            st.success(f"✅ Actif : `Portfolio_Mohammed_HSINY.pdf` ({size_kb} Ko)")
+            st.download_button(
+                "👁️ Télécharger / Vérifier (Portfolio)",
+                portfolio_file.read_bytes(),
+                "Portfolio_Mohammed_HSINY.pdf",
+                "application/pdf",
+                key="dl_portfolio_pdf",
+                use_container_width=True
+            )
         else:
             st.warning("⚠️ Aucun Portfolio PDF actuellement.")
         up_pf = st.file_uploader("Remplacer le Portfolio PDF", type=["pdf"], key="up_pf")
         if up_pf is not None:
-            with open(portfolio_file, "wb") as f_out:
-                f_out.write(up_pf.getbuffer())
-            try:
-                profile.portfolio_pdf_path = str(portfolio_file)
-            except Exception:
-                pass
-            save_profile(profile)
-            st.session_state.profile = profile
-            st.success("🎉 Portfolio PDF mis à jour et sauvegardé avec succès !")
-            time.sleep(0.8)
-            st.rerun()
+            pf_bytes = up_pf.getvalue()
+            pf_hash = hash(pf_bytes)
+            if st.session_state.get("_uploaded_pf_hash") != pf_hash:
+                portfolio_file.write_bytes(pf_bytes)
+                st.session_state["_uploaded_pf_hash"] = pf_hash
+                try:
+                    profile.portfolio_pdf_path = str(portfolio_file)
+                except Exception:
+                    pass
+                save_profile(profile)
+                st.session_state.profile = profile
+                st.toast("🎉 Portfolio PDF mis à jour et sauvegardé !", icon="✅")
+                st.rerun()
 
 # -------------------------------------------------------------
 # TAB 2: Contacts & Validation / Sélection / Exclusion
