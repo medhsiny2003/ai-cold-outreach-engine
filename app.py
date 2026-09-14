@@ -672,6 +672,39 @@ with tab2:
             st.success(f"{len(loaded_contacts)} contacts d'exemple chargés !")
             st.rerun()
 
+    if uploaded_file is not None:
+        file_bytes = uploaded_file.getvalue()
+        loaded_contacts, errors = parse_contacts_file(file_bytes, uploaded_file.name)
+        if errors:
+            for err in errors:
+                st.error(err)
+        elif loaded_contacts:
+            st.markdown(f"""
+            <div style="background: #F0FDF4; border: 1px solid #86EFAC; border-radius: 12px; padding: 14px 18px; margin: 12px 0;">
+                <div style="font-weight: 700; color: #166534; font-size: 0.95rem; margin-bottom: 4px;">
+                    📄 Fichier détecté : <b>{uploaded_file.name}</b> ({len(loaded_contacts)} contacts valides extraits)
+                </div>
+                <div style="color: #15803D; font-size: 0.86rem;">
+                    Choisissez comment intégrer ces contacts dans votre base de travail :
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            col_u1, col_u2 = st.columns(2)
+            with col_u1:
+                if st.button(f"📥 Ajouter ces {len(loaded_contacts)} contacts à la base", type="primary", use_container_width=True, key="btn_add_uploaded"):
+                    save_contacts_bulk(loaded_contacts)
+                    st.success(f"✅ {len(loaded_contacts)} contacts ajoutés à la base avec succès !")
+                    time.sleep(0.8)
+                    st.rerun()
+            with col_u2:
+                if st.button(f"🔄 Remplacer TOUTE la base par ces {len(loaded_contacts)} contacts", use_container_width=True, key="btn_replace_uploaded", help="Supprime l'ancienne base et charge uniquement les contacts de ce fichier"):
+                    clear_all_contacts()
+                    save_contacts_bulk(loaded_contacts)
+                    st.success(f"✅ Ancienne base effacée et remplacée par les {len(loaded_contacts)} nouveaux contacts !")
+                    time.sleep(0.8)
+                    st.rerun()
+
     # Scan local data and data/contacts folder
     local_files = []
     for ext in ["*.xlsx", "*.xls", "*.csv"]:
@@ -698,18 +731,8 @@ with tab2:
                 else:
                     save_contacts_bulk(loaded_contacts)
                     st.success(f"✅ {len(loaded_contacts)} contacts importés depuis `{file_path.name}` !")
+                    time.sleep(0.8)
                     st.rerun()
-
-    if uploaded_file is not None:
-        file_bytes = uploaded_file.read()
-        loaded_contacts, errors = parse_contacts_file(file_bytes, uploaded_file.name)
-        if errors:
-            for err in errors:
-                st.error(err)
-        else:
-            save_contacts_bulk(loaded_contacts)
-            st.success(f"✅ {len(loaded_contacts)} contacts importés avec succès depuis `{uploaded_file.name}` !")
-            st.rerun()
 
     contacts = get_all_contacts()
     
