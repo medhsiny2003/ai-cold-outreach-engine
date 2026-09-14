@@ -15,6 +15,7 @@ DATA_DIR.mkdir(exist_ok=True, parents=True)
 UPLOADS_DIR.mkdir(exist_ok=True, parents=True)
 
 class CandidateProfile(BaseModel):
+    model_config = {"extra": "allow"}
     name: str = "Mohammed HSINY"
     title_fr: str = "Élève-Ingénieur en Génie Électrique & Contrôle Industriel"
     title_en: str = "Electrical Engineering & Industrial Control Student"
@@ -30,6 +31,9 @@ class CandidateProfile(BaseModel):
     linkedin_url: str = "https://linkedin.com/in/mohammed-hsiny"
     mobility_fr: str = "Mobilité nationale (Maroc) & internationale (France, Belgique, Suisse, Canada, USA, Europe)"
     mobility_en: str = "National & International Mobility (France, Belgium, Switzerland, Germany, US, Canada, Europe)"
+    cv_fr_path: Optional[str] = None
+    cv_en_path: Optional[str] = None
+    portfolio_pdf_path: Optional[str] = None
     
     specialties_fr: List[str] = [
         "Systèmes Embarqués (STM32, ESP32, FreeRTOS, C/C++)",
@@ -104,6 +108,7 @@ class CandidateProfile(BaseModel):
     ]
 
 class SMTPSettings(BaseModel):
+    model_config = {"extra": "allow"}
     provider: str = "gmail"  # gmail, outlook, custom
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587
@@ -117,6 +122,7 @@ class SMTPSettings(BaseModel):
     daily_limit: int = 500
 
 class LLMSettings(BaseModel):
+    model_config = {"extra": "allow"}
     provider: str = "gemini"  # gemini, openai, groq, deepseek, ollama, openrouter
     api_key: str = Field(default_factory=lambda: os.getenv("GEMINI_API_KEY", ""))
     model_name: str = "gemini-2.0-flash"
