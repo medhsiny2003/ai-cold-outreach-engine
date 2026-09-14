@@ -542,11 +542,12 @@ kpi_html = f"""
 st.markdown(kpi_html, unsafe_allow_html=True)
 
 # Navigation Tabs with Icons
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+tab1, tab2, tab3, tab4, tab_manual, tab5, tab6, tab7 = st.tabs([
     "👤 Mon Profil & CV",
     "👥 Contacts & Import",
     "🤖 Studio IA",
     "✍️ Revue & Édition",
+    "✉️ Envoi Manuel Direct",
     "🚀 Centre d'Envoi",
     "💬 Réponses & IA",
     "⚙️ Paramètres & Gmail"
@@ -1503,6 +1504,237 @@ with tab4:
                         st.warning(f"🚫 {cnt} contact(s) de '{comp_name_current}' exclus de l'envoi !")
                         time.sleep(0.8)
                         st.rerun()
+
+# -------------------------------------------------------------
+# TAB MANUAL: Mode Envoi Manuel Direct & Rendu HTML / CSS
+# -------------------------------------------------------------
+with tab_manual:
+    st.header("✉️ Mode Envoi Manuel Direct (Rendu HTML / CSS & Signature)")
+    st.markdown("""
+    Rédigez ou collez manuellement un email pour un contact précis. Votre message est **automatiquement habillé du design HTML/CSS haut de gamme**, avec la typographie optimisée, le bouton CTA de votre portfolio, les pièces jointes et la carte de signature complète (RoboThings FSTM, LinkedIn, coordonnées).
+    """)
+
+    col_man1, col_man2 = st.columns([1.5, 1.5])
+    
+    with col_man1:
+        st.markdown("##### 🎯 1. Destinataire & Paramètres")
+        man_email = st.text_input("📧 Email du Destinataire *", placeholder="ex: bruno@sharkrobotics.com", key="man_input_email")
+        man_name = st.text_input("👤 Nom & Prénom (ou Titre)", placeholder="ex: Bruno", key="man_input_name")
+        man_company = st.text_input("🏢 Entreprise / Société", placeholder="ex: Shark Robotics", key="man_input_company")
+        man_role = st.text_input("💼 Rôle / Poste (Optionnel)", placeholder="ex: CEO & Fondateur", key="man_input_role")
+
+    with col_man2:
+        st.markdown("##### 🌐 2. Langue & Objet de l'Email")
+        man_lang_choice = st.radio("Langue de l'email :", ["🇫🇷 Français", "🇬🇧 English"], horizontal=True, key="man_lang_choice")
+        is_man_fr = ("Français" in man_lang_choice)
+        man_lang = "fr" if is_man_fr else "en"
+
+        def_subjs = {
+            "fr_rh": "Candidature – Stage PFE en systèmes embarqués et drones",
+            "fr_ceo": f"Votre vision chez {man_company.strip() or '[Entreprise]'} – Étudiant passionné par les systèmes embarqués et les drones",
+            "fr_eng": f"Votre parcours chez {man_company.strip() or '[Entreprise]'} – Étudiant passionné par les systèmes embarqués et les drones",
+            "en_rh": "Application – 6-Month Graduation Internship (PFE) in Embedded Systems & Drones",
+            "en_ceo": f"Your vision at {man_company.strip() or '[Company]'} – Student passionate about embedded systems & drones",
+            "en_eng": f"Your work at {man_company.strip() or '[Company]'} – Student passionate about embedded systems & drones",
+        }
+
+        default_subj = def_subjs["fr_rh"] if is_man_fr else def_subjs["en_rh"]
+        
+        man_subject = st.text_input("📌 Objet de l'Email *", value=st.session_state.get("man_subj_val", default_subj), key="man_input_subject")
+
+        st.caption("💡 Suggestions d'objets rapides en 1 clic :")
+        col_sb1, col_sb2, col_sb3 = st.columns(3)
+        with col_sb1:
+            if st.button("🎯 RH / Recruteur", use_container_width=True, key="btn_sb_rh"):
+                s_val = def_subjs["fr_rh"] if is_man_fr else def_subjs["en_rh"]
+                st.session_state.man_subj_val = s_val
+                st.rerun()
+        with col_sb2:
+            if st.button("👔 CEO / Fondateur", use_container_width=True, key="btn_sb_ceo"):
+                s_val = def_subjs["fr_ceo"] if is_man_fr else def_subjs["en_ceo"]
+                st.session_state.man_subj_val = s_val
+                st.rerun()
+        with col_sb3:
+            if st.button("🔬 Ingénieur / R&D", use_container_width=True, key="btn_sb_eng"):
+                s_val = def_subjs["fr_eng"] if is_man_fr else def_subjs["en_eng"]
+                st.session_state.man_subj_val = s_val
+                st.rerun()
+
+    st.divider()
+
+    # Attachments block
+    st.markdown("##### 📎 3. Pièces Jointes Sélectionnées")
+    col_at1, col_at2, col_at3 = st.columns(3)
+    cv_fr_p = UPLOADS_DIR / "CV_Mohammed_HSINY_FR.pdf"
+    cv_en_p = UPLOADS_DIR / "CV_Mohammed_HSINY_EN.pdf"
+    pf_pdf_p = UPLOADS_DIR / "Portfolio_Mohammed_HSINY.pdf"
+
+    with col_at1:
+        man_att_cv_fr = st.checkbox(
+            f"📄 CV Français (PDF) {'✅' if cv_fr_p.is_file() else '⚠️ Manquant'}",
+            value=is_man_fr and cv_fr_p.is_file(),
+            key="man_chk_cv_fr"
+        )
+    with col_at2:
+        man_att_cv_en = st.checkbox(
+            f"📄 CV Anglais (PDF) {'✅' if cv_en_p.is_file() else '⚠️ Manquant'}",
+            value=(not is_man_fr) and cv_en_p.is_file(),
+            key="man_chk_cv_en"
+        )
+    with col_at3:
+        man_att_pf = st.checkbox(
+            f"💼 Portfolio Dossier (PDF) {'✅' if pf_pdf_p.is_file() else '⚠️ Manquant'}",
+            value=pf_pdf_p.is_file(),
+            key="man_chk_pf"
+        )
+
+    st.divider()
+
+    # Message drafting & Live preview columns
+    col_draft, col_prev = st.columns([1.2, 1.3])
+
+    with col_draft:
+        st.markdown("##### ✍️ 4. Rédaction du Corps du Message")
+        
+        first_n = man_name.strip().split()[0] if man_name.strip() else ""
+        salut_fr = f"Bonjour {first_n}," if first_n else "Bonjour,"
+        salut_en = f"Hello {first_n}," if first_n else "Hello,"
+        comp_disp = man_company.strip() or "votre entreprise"
+
+        if is_man_fr:
+            sample_body = f"""{salut_fr}
+
+J'espère que vous allez bien.
+
+Je suis étudiant en dernière année d'ingénierie en Génie Électrique à la FST Mohammedia, passionné par les systèmes embarqués, la robotique et les drones. Je suis basé au Maroc et je prépare actuellement mon stage de fin d'études (PFE) de 6 mois à partir de janvier 2027.
+
+Je suis très motivé par l'idée de rejoindre {comp_disp} et je suis sincèrement inspiré par vos projets et votre expertise dans le domaine.
+
+Je me permets de vous contacter pour savoir s'il y aurait des opportunités de stage au sein de votre équipe. Je vous joins mon CV ainsi que mon portfolio pour plus de détails.
+
+https://portfolio-mohammed-hsiny-ux7z.vercel.app/
+
+Merci d'avance pour votre temps.
+
+Bien cordialement,"""
+        else:
+            sample_body = f"""{salut_en}
+
+I hope you are doing well.
+
+I am a final-year Electrical Engineering student at FSTM, passionate about embedded systems, robotics, and autonomous drones. I am based in Morocco and currently preparing my 6-month graduation internship (PFE) starting January 2027.
+
+I am genuinely motivated by the prospect of contributing to {comp_disp} and deeply inspired by your innovative engineering projects.
+
+I would be honored to explore internship opportunities within your team. I have attached my resume and project portfolio for your review.
+
+https://portfolio-mohammed-hsiny-ux7z.vercel.app/
+
+Thank you very much for your time and consideration.
+
+Best regards,"""
+
+        man_body_val = st.text_area(
+            "Rédigez votre texte librement ci-dessous (la signature et le style HTML seront ajoutés automatiquement) :",
+            value=st.session_state.get("manual_custom_body", sample_body),
+            height=340,
+            key="manual_textarea_body"
+        )
+        st.session_state["manual_custom_body"] = man_body_val
+
+        col_b_act1, col_b_act2 = st.columns(2)
+        with col_b_act1:
+            if st.button("🔄 Actualiser avec les coordonnées saisies", use_container_width=True, key="btn_refresh_manual_text"):
+                st.session_state["manual_custom_body"] = sample_body
+                st.rerun()
+        with col_b_act2:
+            if st.button("🌐 Insérer Lien Portfolio CTA", use_container_width=True, key="btn_insert_portfolio_manual"):
+                if "https://portfolio-mohammed-hsiny-ux7z.vercel.app" not in man_body_val:
+                    st.session_state["manual_custom_body"] = man_body_val + "\n\nhttps://portfolio-mohammed-hsiny-ux7z.vercel.app/"
+                    st.rerun()
+
+    with col_prev:
+        st.markdown("##### 👁️ 5. Aperçu Réel du Rendu HTML / CSS")
+        st.caption("Voici le rendu exact que recevra votre destinataire dans sa boîte mail :")
+        
+        # Build professional HTML
+        html_rendered = build_professional_html(
+            body_text=man_body_val,
+            profile=profile,
+            language=man_lang,
+            include_logo=True
+        )
+        st.components.v1.html(html_rendered, height=480, scrolling=True)
+
+    st.divider()
+
+    # Sending actions toolbar
+    st.markdown("##### 🚀 6. Expédition Immédiate")
+    col_snd1, col_snd2, col_snd3 = st.columns([1.5, 1.2, 1.3])
+    
+    with col_snd1:
+        save_to_contacts_db = st.checkbox("💾 Enregistrer ce contact dans ma base (Statut 'Envoyé')", value=True, key="chk_save_manual_to_db")
+    with col_snd2:
+        st.write("")
+        st.caption(f"Expéditeur : `{smtp.sender_name} <{smtp.sender_email}>`")
+    with col_snd3:
+        btn_send_manual = st.button(
+            "📤 ENVOYER CET EMAIL MAINTENANT (HTML PRO)",
+            type="primary",
+            use_container_width=True,
+            key="btn_trigger_manual_send"
+        )
+
+    if btn_send_manual:
+        if not man_email or "@" not in man_email or "." not in man_email.split("@")[-1]:
+            st.error("⚠️ Veuillez renseigner une adresse email destinataire valide.")
+        elif not smtp.app_password:
+            st.error("⚠️ Mot de passe d'application Gmail manquant. Configurez-le dans l'onglet Paramètres.")
+        elif not man_body_val.strip():
+            st.error("⚠️ Le corps du message est vide.")
+        else:
+            # Build attachments list
+            man_attachments = []
+            if man_att_cv_fr and cv_fr_p.is_file():
+                man_attachments.append(str(cv_fr_p))
+            if man_att_cv_en and cv_en_p.is_file():
+                man_attachments.append(str(cv_en_p))
+            if man_att_pf and pf_pdf_p.is_file():
+                man_attachments.append(str(pf_pdf_p))
+
+            with st.spinner(f"Expédition de l'email avec design HTML vers {man_email}..."):
+                res_send = send_single_email(
+                    settings=smtp,
+                    recipient_email=man_email.strip(),
+                    subject=man_subject.strip(),
+                    body_text=man_body_val,
+                    attachment_paths=man_attachments,
+                    profile=profile,
+                    language=man_lang
+                )
+
+            if res_send.success:
+                st.balloons()
+                st.success(f"🎉 Email envoyé avec succès à **{man_email}** avec le template HTML et {len(man_attachments)} pièce(s) jointe(s) !")
+                log_sent_email(man_email.strip(), man_subject.strip(), man_body_val, "SUCCESS")
+                
+                if save_to_contacts_db:
+                    save_or_update_contact({
+                        "email": man_email.strip(),
+                        "name": man_name.strip() or man_email.split("@")[0],
+                        "company": man_company.strip(),
+                        "role": man_role.strip(),
+                        "status": "sent",
+                        "subject": man_subject.strip(),
+                        "body": man_body_val,
+                        "language": man_lang,
+                        "notes": "Envoi direct via Mode Manuel"
+                    })
+                    st.toast("✅ Contact enregistré dans la base avec statut 'sent' !", icon="💾")
+                
+                time.sleep(1.5)
+            else:
+                st.error(f"❌ Échec de l'envoi : {res_send.message}")
 
 # -------------------------------------------------------------
 # TAB 5: Centre d'Envoi
