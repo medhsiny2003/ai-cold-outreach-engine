@@ -1495,6 +1495,15 @@ with tab4:
                         st.success(f"🎉 {approved_count} contacts sont maintenant approuvés pour l'envoi !")
                         st.rerun()
 
+                comp_name_current = (current_contact.get("company") or "").strip()
+                if comp_name_current:
+                    st.write("")
+                    if st.button(f"🏢 Exclure toute la société '{comp_name_current}' de l'envoi", use_container_width=True, help=f"Bloque tous les contacts de '{comp_name_current}' pour qu'aucun email ne leur soit envoyé"):
+                        cnt = exclude_contacts_by_companies([comp_name_current])
+                        st.warning(f"🚫 {cnt} contact(s) de '{comp_name_current}' exclus de l'envoi !")
+                        time.sleep(0.8)
+                        st.rerun()
+
 # -------------------------------------------------------------
 # TAB 5: Centre d'Envoi
 # -------------------------------------------------------------
@@ -1686,6 +1695,38 @@ mohammedhsiny2@gmail.com"""
             else:
                 st.info("Aucun email n'a le statut 'Approuvé'. Veuillez valider les emails dans l'onglet 'Revue & Édition'.")
         else:
+            # -------------------------------------------------------------
+            # MODULE DIRECT D'ÉLIMINATION / EXCLUSION PAR ENTREPRISE
+            # -------------------------------------------------------------
+            unique_approved_companies = sorted(list(set([c.get("company", "").strip() for c in approved_contacts if c.get("company", "").strip()])))
+            
+            with st.expander("🏢 Éliminer / Exclure une Société de l'Envoi", expanded=False):
+                st.caption("Retirez immédiatement tous les salariés d'une ou plusieurs sociétés de cette file d'envoi avant de lancer l'expédition.")
+                col_ex_s1, col_ex_s2, col_ex_s3 = st.columns([2, 2, 1.5])
+                with col_ex_s1:
+                    sel_exc_comp_send = st.multiselect(
+                        "Choisir les entreprises à éliminer :",
+                        options=unique_approved_companies,
+                        help="Sélectionnez une ou plusieurs entreprises présentes dans la file d'envoi ci-dessous."
+                    )
+                with col_ex_s2:
+                    custom_exc_send = st.text_input(
+                        "Ou saisir le nom d'une société :",
+                        placeholder="Ex: Shark Robotics",
+                        key="send_custom_exc_input"
+                    )
+                with col_ex_s3:
+                    st.write("")
+                    st.write("")
+                    all_exc_send = list(sel_exc_comp_send)
+                    if custom_exc_send.strip() and custom_exc_send.strip() not in all_exc_send:
+                        all_exc_send.append(custom_exc_send.strip())
+                    if st.button("🚫 Éliminer de l'envoi", type="primary", use_container_width=True, disabled=not all_exc_send, key="btn_exclude_from_send_tab"):
+                        cnt = exclude_contacts_by_companies(all_exc_send)
+                        st.success(f"🚫 {cnt} contact(s) de '{', '.join(all_exc_send)}' éliminé(s) de l'envoi !")
+                        time.sleep(0.8)
+                        st.rerun()
+
             st.markdown(f"**📋 Liste des {len(approved_contacts)} candidatures prêtes à être envoyées en tâche de fond :**")
             st.dataframe(pd.DataFrame(approved_contacts)[["name", "email", "company", "role", "subject"]], use_container_width=True)
 

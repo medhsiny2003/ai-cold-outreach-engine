@@ -170,23 +170,23 @@ def classify_role_category(role: str) -> str:
 def get_target_subject(persona: str, theme: str = "auto", company: str = "", language: str = "fr") -> str:
     """Returns an attractive, persona-tailored subject line."""
     if theme == "drones_robotics":
-        th_fr, th_hr_fr = "les drones et la robotique", "Drones, Robotique & Systèmes Embarqués"
-        th_en, th_hr_en = "drones & robotics", "Drones & Embedded Systems"
+        th_fr, th_hr_fr = "les systèmes embarqués et les drones", "systèmes embarqués et drones"
+        th_en, th_hr_en = "embedded systems & robotics", "Embedded Systems & Drones"
     elif theme == "solar_energy":
-        th_fr, th_hr_fr = "l'énergie solaire photovoltaïque", "Énergie Solaire & Génie Électrique"
+        th_fr, th_hr_fr = "l'énergie solaire photovoltaïque", "énergie solaire et génie électrique"
         th_en, th_hr_en = "solar energy", "Solar Energy & Power Systems"
     elif theme == "automation_scada":
-        th_fr, th_hr_fr = "l'automatisme industriel & SCADA", "Automatisme Industriel & SCADA"
+        th_fr, th_hr_fr = "l'automatisme industriel & SCADA", "automatisme industriel et SCADA"
         th_en, th_hr_en = "industrial automation", "Industrial Automation & SCADA"
     elif theme == "embedded_edge_ai":
-        th_fr, th_hr_fr = "les systèmes embarqués temps réel", "Systèmes Embarqués & Edge AI"
+        th_fr, th_hr_fr = "les systèmes embarqués temps réel", "systèmes embarqués et Edge AI"
         th_en, th_hr_en = "embedded systems", "Embedded Systems & Edge AI"
     elif theme == "electrical_power":
-        th_fr, th_hr_fr = "le génie électrique et l'électrotechnique", "Génie Électrique & Électrotechnique"
+        th_fr, th_hr_fr = "le génie électrique et l'électrotechnique", "génie électrique et électrotechnique"
         th_en, th_hr_en = "electrical engineering", "Electrical Engineering & Power Systems"
     else:
-        th_fr, th_hr_fr = "les systèmes embarqués et les drones", "Génie Électrique & Systèmes Embarqués"
-        th_en, th_hr_en = "embedded systems & robotics", "Electrical & Embedded Systems"
+        th_fr, th_hr_fr = "les systèmes embarqués et les drones", "systèmes embarqués et drones"
+        th_en, th_hr_en = "embedded systems & robotics", "Embedded Systems & Drones"
 
     comp_name = company.strip() if company.strip() and company.strip().lower() not in ["votre entreprise", "n/a", ""] else "[Entreprise]"
 
