@@ -551,12 +551,6 @@ def reset_sent_and_bounced_to_pending() -> int:
         conn.commit()
         return cur.rowcount
 
-def clear_sent_logs_history():
-    """Clears sent logs history."""
-    with get_db_connection() as conn:
-        conn.execute("DELETE FROM sent_logs")
-        conn.commit()
-
 def reset_all_data_and_contacts(clear_sent_logs: bool = False, clear_uploads: bool = False):
     """Resets the contacts table and optionally sent logs and uploads."""
     with get_db_connection() as conn:
@@ -575,4 +569,78 @@ def reset_all_data_and_contacts(clear_sent_logs: bool = False, clear_uploads: bo
                         f.unlink()
                     except Exception:
                         pass
+
+def get_unique_companies_summary() -> List[Dict[str, Any]]:
+    """Returns a list of unique companies with aggregated contact metrics."""
+    with get_db_connection() as conn:
+        rows = conn.execute("""
+            SELECT 
+                COALESCE(NULLIF(TRIM(company), ''), 'Non renseignée') as company_name,
+                COUNT(*) as total,
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
+                SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent,
+                SUM(CASE WHEN status = 'bounced' THEN 1 ELSE 0 END) as bounced,
+                SUM(CASE WHEN status = 'excluded' THEN 1 ELSE 0 END) as excluded
+            FROM contacts
+            GROUP BY company_name
+            ORDER BY total DESC, company_name ASC
+        """).fetchall()
+        return [dict(r) for r in rows]
+
+def _build_company_where_clause(company_names: List[str]) -> tuple:
+    cleaned = [c.strip().lower() for c in company_names if c and c.strip()]
+    if not cleaned:
+        return "", []
+    clauses = []
+    params = []
+    for c in cleaned:
+        clauses.append("(LOWER(TRIM(company)) = ? OR LOWER(company) LIKE ?)")
+        params.extend([c, f"%{c}%"])
+    return "(" + " OR ".join(clauses) + ")", params
+
+def exclude_contacts_by_companies(company_names: List[str]) -> int:
+    """Sets status to 'excluded' for all contacts belonging to the specified company names."""
+    where_sql, params = _build_company_where_clause(company_names)
+    if not where_sql:
+        return 0
+    now = time.time()
+    with get_db_connection() as conn:
+        cur = conn.execute(f"""
+            UPDATE contacts 
+            SET status = 'excluded', updated_at = ?
+            WHERE {where_sql}
+        """, [now] + params)
+        conn.commit()
+        return cur.rowcount
+
+def reinclude_contacts_by_companies(company_names: List[str]) -> int:
+    """Reactivates contacts belonging to specified companies from 'excluded' back to 'pending'."""
+    where_sql, params = _build_company_where_clause(company_names)
+    if not where_sql:
+        return 0
+    now = time.time()
+    with get_db_connection() as conn:
+        cur = conn.execute(f"""
+            UPDATE contacts 
+            SET status = 'pending', updated_at = ?
+            WHERE {where_sql} AND status = 'excluded'
+        """, [now] + params)
+        conn.commit()
+        return cur.rowcount
+
+def delete_contacts_by_companies(company_names: List[str]) -> int:
+    """Deletes all contacts belonging to the specified company names."""
+    where_sql, params = _build_company_where_clause(company_names)
+    if not where_sql:
+        return 0
+    with get_db_connection() as conn:
+        cur = conn.execute(f"""
+            DELETE FROM contacts 
+            WHERE {where_sql}
+        """, params)
+        conn.commit()
+        return cur.rowcount
+
+
 

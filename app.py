@@ -31,7 +31,8 @@ try:
         save_contacts_bulk, approve_all_contacts, clear_all_contacts, log_sent_email, get_all_sent_logs,
         get_all_recruiter_responses, mark_response_read, trigger_waterfall_retry_bounced,
         delete_contact_by_id, delete_contacts_bulk, update_contacts_status_bulk, reset_all_data_and_contacts,
-        delete_contacts_by_status, reset_all_contacts_to_pending, reset_sent_and_bounced_to_pending, clear_sent_logs_history
+        delete_contacts_by_status, reset_all_contacts_to_pending, reset_sent_and_bounced_to_pending, clear_sent_logs_history,
+        get_unique_companies_summary, exclude_contacts_by_companies, reinclude_contacts_by_companies, delete_contacts_by_companies
     )
 except ImportError:
     from services.storage_service import (
@@ -50,6 +51,10 @@ except ImportError:
     def reset_all_contacts_to_pending(): return 0
     def reset_sent_and_bounced_to_pending(): return 0
     def clear_sent_logs_history(): pass
+    def get_unique_companies_summary(): return []
+    def exclude_contacts_by_companies(c_names): return 0
+    def reinclude_contacts_by_companies(c_names): return 0
+    def delete_contacts_by_companies(c_names): return 0
 
 try:
     from services.email_validator import validate_single_email, validate_contacts_list
@@ -914,7 +919,76 @@ with tab2:
         df_display = pd.DataFrame(display_list)[["id", "name", "email", "company", "role", "location", "industry", "status"]]
         st.dataframe(df_display, use_container_width=True)
 
-        st.markdown("##### 🎯 Sélection & Actions par Contact")
+        # -------------------------------------------------------------
+        # MODULE D'EXCLUSION & GESTION PAR ENTREPRISE (BLACKLIST)
+        # -------------------------------------------------------------
+        st.markdown("""
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px 18px; margin: 16px 0 12px 0;">
+            <div style="font-weight: 700; color: #0F172A; font-size: 0.95rem; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-building-circle-xmark" style="color: #DC2626;"></i> <span>🏢 Exclusion & Blocage Global par Entreprise</span>
+            </div>
+            <div style="color: #475569; font-size: 0.86rem;">
+                Excluez facilement tous les contacts d'une ou plusieurs sociétés (ex: Shark Robotics, Thales, etc.) pour qu'aucun email ne leur soit envoyé.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        companies_summary = get_unique_companies_summary()
+        company_choices = [c["company_name"] for c in companies_summary if c["company_name"] and c["company_name"] != "Non renseignée"]
+        
+        # Display currently excluded companies badge if any
+        excluded_companies = [c for c in companies_summary if c.get("excluded", 0) > 0]
+        if excluded_companies:
+            exc_badges = " ".join([f"<span style='background:#FEE2E2; color:#991B1B; padding:3px 8px; border-radius:6px; font-weight:700; font-size:0.82rem; border:1px solid #FECACA;'>🚫 {c['company_name']} ({c['excluded']} exclus)</span>" for c in excluded_companies])
+            st.markdown(f"<div style='margin-bottom: 12px;'><b>Sociétés actuellement exclues :</b> {exc_badges}</div>", unsafe_allow_html=True)
+
+        col_cmp1, col_cmp2 = st.columns([1.5, 1.5])
+        with col_cmp1:
+            sel_companies = st.multiselect(
+                "Sélectionner des entreprises de la base à exclure/gérer :",
+                options=company_choices,
+                format_func=lambda c_name: next((f"{c_name} ({c['total']} contacts)" for c in companies_summary if c["company_name"] == c_name), c_name),
+                help="Sélectionnez une ou plusieurs entreprises présentes dans votre fichier."
+            )
+        with col_cmp2:
+            custom_company_input = st.text_input(
+                "Ou saisir un/des nom(s) d'entreprise(s) (séparés par des virgules) :",
+                value="",
+                placeholder="Ex: Shark Robotics, Thales, Airbus...",
+                help="Tapez n'importe quel nom ou mot-clé d'entreprise. Tous les contacts correspondants seront traités."
+            )
+
+        # Merge selected companies and typed companies
+        all_target_companies = list(sel_companies)
+        if custom_company_input.strip():
+            for typed_c in custom_company_input.split(","):
+                tc_clean = typed_c.strip()
+                if tc_clean and tc_clean not in all_target_companies:
+                    all_target_companies.append(tc_clean)
+
+        col_cact1, col_cact2, col_cact3 = st.columns([1.3, 1.3, 1.4])
+        with col_cact1:
+            if st.button("🚫 Exclure ces entreprises de l'envoi", type="primary", use_container_width=True, disabled=not all_target_companies, help="Marque tous les salariés de ces entreprises comme 'excluded' (aucun email ne leur sera envoyé)"):
+                cnt = exclude_contacts_by_companies(all_target_companies)
+                st.success(f"🚫 {cnt} contact(s) de {len(all_target_companies)} entreprise(s) ont été exclus de l'envoi !")
+                time.sleep(0.8)
+                st.rerun()
+        with col_cact2:
+            if st.button("✅ Réactiver ces entreprises", use_container_width=True, disabled=not all_target_companies, help="Remet les salariés de ces entreprises en statut 'pending' pour être envoyés"):
+                cnt = reinclude_contacts_by_companies(all_target_companies)
+                st.success(f"✅ {cnt} contact(s) de {len(all_target_companies)} entreprise(s) ont été réactivés !")
+                time.sleep(0.8)
+                st.rerun()
+        with col_cact3:
+            if st.button("🗑️ Supprimer ces entreprises de la base", type="secondary", use_container_width=True, disabled=not all_target_companies, help="Supprime définitivement tous les contacts de ces entreprises"):
+                cnt = delete_contacts_by_companies(all_target_companies)
+                st.success(f"🗑️ {cnt} contact(s) de ces entreprises supprimés définitivement !")
+                time.sleep(0.8)
+                st.rerun()
+
+        st.divider()
+
+        st.markdown("##### 🎯 Sélection & Actions par Contact Individuel")
         contact_options = {c["id"]: f"#{c['id']} - {c.get('name') or c.get('email')} | {c.get('company', 'N/A')} [{c.get('status')}]" for c in display_list}
         selected_cids = st.multiselect(
             "Cochez un ou plusieurs contacts pour agir dessus :",
@@ -1122,9 +1196,9 @@ Mohammed HSINY
             gen_all_btn = st.button(f"🔄 Tout régénérer ({len(contacts)} contacts)", type="secondary", use_container_width=True)
 
         if gen_pending_btn or gen_all_btn:
-            targets = pending_contacts if gen_pending_btn else contacts
+            targets = pending_contacts if gen_pending_btn else [c for c in contacts if c.get("status") not in ["excluded", "invalid_email"]]
             if not targets:
-                st.info("Aucun contact à traiter.")
+                st.info("Aucun contact à traiter (les contacts exclus sont ignorés).")
             else:
                 progress_bar = st.progress(0)
                 status_box = st.empty()
