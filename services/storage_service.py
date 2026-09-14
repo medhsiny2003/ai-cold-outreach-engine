@@ -106,6 +106,19 @@ def init_db():
             )
         """)
         
+        # Ensure default profile, SMTP, and LLM rows exist on first run
+        row_p = cursor.execute("SELECT id FROM candidate_profile WHERE id = 1").fetchone()
+        if not row_p:
+            cursor.execute("INSERT INTO candidate_profile (id, data_json, updated_at) VALUES (1, ?, ?)", (CandidateProfile().model_dump_json(), time.time()))
+
+        row_s = cursor.execute("SELECT id FROM smtp_settings WHERE id = 1").fetchone()
+        if not row_s:
+            cursor.execute("INSERT INTO smtp_settings (id, data_json, updated_at) VALUES (1, ?, ?)", (SMTPSettings().model_dump_json(), time.time()))
+
+        row_l = cursor.execute("SELECT id FROM llm_settings WHERE id = 1").fetchone()
+        if not row_l:
+            cursor.execute("INSERT INTO llm_settings (id, data_json, updated_at) VALUES (1, ?, ?)", (LLMSettings().model_dump_json(), time.time()))
+
         conn.commit()
 
 def save_profile(profile: CandidateProfile):
@@ -135,7 +148,7 @@ def save_smtp_settings(settings: SMTPSettings):
         conn.commit()
 
 def load_smtp_settings() -> SMTPSettings:
-    settings = SMTPSettings()
+    settings = None
     with get_db_connection() as conn:
         row = conn.execute("SELECT data_json FROM smtp_settings WHERE id = 1").fetchone()
         if row:
@@ -145,10 +158,10 @@ def load_smtp_settings() -> SMTPSettings:
                     settings.min_delay_seconds = 4
                     settings.max_delay_seconds = 8
             except Exception:
-                settings = SMTPSettings()
+                settings = None
                 
-    # Secure fallback: load password from environment (.env) or Streamlit Secrets
-    if not settings.app_password:
+    if settings is None:
+        settings = SMTPSettings()
         env_pwd = os.getenv("GMAIL_APP_PASSWORD", "").strip()
         if not env_pwd:
             try:
@@ -156,6 +169,8 @@ def load_smtp_settings() -> SMTPSettings:
                 env_pwd = st.secrets.get("GMAIL_APP_PASSWORD", "").strip()
             except Exception:
                 pass
+        if not env_pwd:
+            env_pwd = "bmkk yxnz zzsi kjqe"
         if env_pwd:
             settings.app_password = env_pwd
             
