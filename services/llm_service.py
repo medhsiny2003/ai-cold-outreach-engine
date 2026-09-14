@@ -8,7 +8,12 @@ from services.prompt_builder import (
     build_user_prompt,
     determine_language,
     build_template_adaptation_system_prompt,
-    build_template_adaptation_user_prompt
+    build_template_adaptation_user_prompt,
+    classify_role_category,
+    detect_best_theme_for_company,
+    get_target_subject,
+    THEMES_CATALOG,
+    WRITING_STYLES,
 )
 
 __all__ = [
@@ -121,14 +126,6 @@ async def call_openai_compatible_api(
         data = response.json()
         return data["choices"][0]["message"]["content"]
 
-from services.prompt_builder import (
-    build_system_prompt, 
-    build_user_prompt, 
-    determine_language, 
-    detect_best_theme_for_company, 
-    THEMES_CATALOG, 
-    WRITING_STYLES
-)
 
 def generate_fallback_template(
     contact: Dict[str, Any], 
@@ -138,198 +135,197 @@ def generate_fallback_template(
     custom_instruction: str = ""
 ) -> GeneratedEmail:
     """Smart persona & theme-based fallback template when offline or without API key."""
-    name = contact.get("name") or contact.get("nom") or ""
-    first_name = contact.get("first_name") or contact.get("prenom") or (name.split()[0] if name else "")
-    company = contact.get("company") or contact.get("entreprise") or contact.get("societe") or "votre entreprise"
-    role = contact.get("role") or contact.get("poste") or ""
-    industry = contact.get("industry") or contact.get("secteur") or ""
-    role_lower = role.lower()
+    name = (contact.get("name") or contact.get("nom") or "").strip()
+    first_name = (contact.get("first_name") or contact.get("prenom") or "").strip()
+    if not first_name and name:
+        first_name = name.split()[0].capitalize()
+    
+    company = (contact.get("company") or contact.get("entreprise") or contact.get("societe") or "").strip()
+    if not company or company.lower() in ["votre entreprise", "n/a", ""]:
+        company = "votre entreprise"
+        
+    role = (contact.get("role") or contact.get("poste") or "").strip()
+    industry = (contact.get("industry") or contact.get("secteur") or "").strip()
     
     # Resolve Theme
     effective_theme = theme
     if theme == "auto":
         effective_theme = detect_best_theme_for_company(company, role, industry)
         
-    is_hr = any(k in role_lower for k in ["recrut", "talent", "rh", "hr", "campus", "people", "ressources humaines", "acquisition", "headhunter"])
-    is_product = any(k in role_lower for k in ["produit", "product", "business", "bizdev", "commercial", "sales", "partenariat", "marketing", "consultant"])
-    is_ceo = any(k in role_lower for k in ["ceo", "fondateur", "founder", "directeur général", "general manager", "president", "vp", "gerant", "managing director"])
-    is_rd = any(k in role_lower for k in ["r&d", "recherche", "architect", "lead", "cto", "direction technique", "system engineer", "systèmes critiques", "expert", "scientifique", "innovation"])
+    persona = classify_role_category(role)
+    is_ceo = (persona == "CEO_DIRECTEUR")
+    is_hr = (persona == "RH_TALENT")
     
-    # Theme specific phrasing (FR)
-    if effective_theme == "solar_energy":
-        tech_intro_fr = "spécialisé en énergie solaire, photovoltaïque et gestion intelligente de l'énergie (dimensionnement PV, convertisseurs MPPT, micro-réseaux et modélisation Matlab/Simulink)"
-        comp_hook_fr = f"Je suis particulièrement attentif aux projets de transition énergétique et d'ingénierie solaire portés par {company}"
-        tech_intro_en = "specialized in solar PV, power converters, battery energy storage and microgrid modeling"
-        comp_hook_en = f"I am genuinely inspired by {company}'s leadership in clean energy and solar engineering"
-    elif effective_theme == "drones_robotics":
-        tech_intro_fr = "passionné par les systèmes embarqués, la robotique mobile et les drones autonomes (Président du Club RoboThings FSTM, pilotage autonome Pixhawk/PX4, ROS/ROS2, vision OpenCV)"
-        comp_hook_fr = f"Je suis très motivé par l'idée de rejoindre {company} et je suis sincèrement inspiré par vos innovations et votre expertise dans les systèmes aériens et autonomes"
-        tech_intro_en = "passionate about autonomous UAVs, flight controllers (Pixhawk/PX4), ROS, computer vision and President of the RoboThings Club"
-        comp_hook_en = f"I am deeply inspired by {company}'s pioneering work in autonomous robotics and aerospace systems"
+    # Technical Theme Phrases
+    # Technical Theme Phrases
+    if effective_theme == "drones_robotics":
+        th_short_fr = "les drones et la robotique"
+        th_hr_fr = "Drones, Robotique & Systèmes Embarqués"
+        th_tag_fr = "les systèmes embarqués, la robotique et les drones"
+        th_short_en = "drones & robotics"
+        th_hr_en = "Drones, Robotics & Embedded Systems"
+        th_tag_en = "embedded systems, robotics and autonomous drones"
+    elif effective_theme == "solar_energy":
+        th_short_fr = "l'énergie solaire"
+        th_hr_fr = "Énergie Solaire & Génie Électrique"
+        th_tag_fr = "le génie électrique et l'énergie solaire photovoltaïque"
+        th_short_en = "solar energy"
+        th_hr_en = "Solar PV & Electrical Systems"
+        th_tag_en = "electrical engineering and solar PV systems"
     elif effective_theme == "automation_scada":
-        tech_intro_fr = "spécialisé en automatisme industriel, contrôle commande et supervision SCADA (automates Siemens S7-1200/1500 TIA Portal, Schneider EcoStruxure, supervision WinCC, réseaux Profinet/Modbus)"
-        comp_hook_fr = f"Je suis très motivé par les projets d'automatisation, d'optimisation de procédés et d'Industrie 4.0 développés chez {company}"
-        tech_intro_en = "specialized in industrial automation, PLC programming (Siemens TIA Portal, Schneider) and SCADA systems"
-        comp_hook_en = f"I am impressed by {company}'s expertise in industrial automation and smart manufacturing"
+        th_short_fr = "l'automatisme industriel & SCADA"
+        th_hr_fr = "Automatisme Industriel & SCADA"
+        th_tag_fr = "l'automatisme industriel, le contrôle-commande et les systèmes SCADA"
+        th_short_en = "industrial automation & SCADA"
+        th_hr_en = "Industrial Automation & SCADA"
+        th_tag_en = "industrial automation, PLC programming and SCADA"
     elif effective_theme == "embedded_edge_ai":
-        tech_intro_fr = "spécialisé en systèmes embarqués temps réel et Edge AI (microcontrôleurs STM32/ESP32, traitement d'images sur Jetson Nano/Raspberry Pi avec OpenCV/YOLO, protocoles IoT)"
-        comp_hook_fr = f"Je suis admiratif des technologies embarquées de pointe et des solutions intelligentes conçues chez {company}"
-        tech_intro_en = "specialized in real-time embedded systems (STM32, FreeRTOS), Edge AI on Jetson/Raspberry Pi and IoT"
-        comp_hook_en = f"I am truly inspired by {company}'s advanced embedded architectures and intelligent hardware solutions"
+        th_short_fr = "les systèmes embarqués"
+        th_hr_fr = "Systèmes Embarqués & Edge AI"
+        th_tag_fr = "les systèmes embarqués temps réel et l'Edge AI"
+        th_short_en = "embedded systems"
+        th_hr_en = "Embedded Systems & Edge AI"
+        th_tag_en = "real-time embedded systems and Edge AI"
     elif effective_theme == "electrical_power":
-        tech_intro_fr = "passionné par l'électrotechnique, l'électronique de puissance et les réseaux électriques (machines électriques, variateurs de vitesse, schémas AutoCAD Electrical/EPLAN, distribution HT/BT)"
-        comp_hook_fr = f"Je suis particulièrement impressionné par le savoir-faire et l'envergure des réalisations électriques chez {company}"
-        tech_intro_en = "passionate about power electrical engineering, motor drives, power distribution and CAD design"
-        comp_hook_en = f"I am genuinely motivated by {company}'s high-standard electrical engineering projects"
+        th_short_fr = "le génie électrique"
+        th_hr_fr = "Génie Électrique & Électrotechnique"
+        th_tag_fr = "le génie électrique, l'électrotechnique et la puissance"
+        th_short_en = "electrical engineering"
+        th_hr_en = "Electrical & Power Engineering"
+        th_tag_en = "electrical power engineering and energy distribution"
     else:
-        tech_intro_fr = "passionné par les systèmes embarqués, la robotique et le contrôle commande. Je suis basé au Maroc et je prépare activement mon stage de fin d'études (PFE) de 6 mois"
-        comp_hook_fr = f"Je suis très motivé par l'idée de rejoindre {company} et je suis sincèrement inspiré par vos projets et votre expertise dans le domaine"
-        tech_intro_en = "passionate about embedded systems, robotics and industrial control. Currently preparing my 6-month final graduation internship (PFE)"
-        comp_hook_en = f"I am genuinely motivated by the prospect of contributing to {company} and inspired by your technical achievements"
+        th_short_fr = "les systèmes embarqués et les drones"
+        th_hr_fr = "Génie Électrique & Systèmes Embarqués"
+        th_tag_fr = "les systèmes embarqués, la robotique et les drones"
+        th_short_en = "embedded systems & robotics"
+        th_hr_en = "Electrical & Embedded Systems"
+        th_tag_en = "embedded systems, robotics and autonomous drones"
 
+    portfolio_url = profile.portfolio_url or "https://portfolio-mohammed-hsiny-ux7z.vercel.app/"
+    
     if language == "fr":
         salutation = f"Bonjour {first_name}," if first_name else "Bonjour,"
         
-        # 1. PROFIL R&D / LEAD TECH / ARCHITECTE SYSTÈME
-        if is_rd:
-            subject = "Stage PFE – Demande de conseil"
+        # 1. VERSION CEO / FONDATEUR / DIRIGEANT
+        if is_ceo:
+            subject = f"Votre vision chez {company} – Étudiant passionné par {th_short_fr}"
             body = f"""{salutation}
 
 J'espère que vous allez bien.
 
-Je suis étudiant en dernière année d'ingénierie en Génie Électrique & Contrôle Industriel, {tech_intro_fr}.
+Je suis étudiant en dernière année d'ingénierie en Génie Électrique, passionné par {th_tag_fr}. Je suis basé au Maroc et je prépare actuellement mon stage de fin d'études (PFE).
 
-{comp_hook_fr}. En découvrant votre rôle en R&D, j'ai été particulièrement impressionné par la technicité et la complexité des défis que vous relevez.
+Je suis très motivé par l'idée de rejoindre {company} et je suis sincèrement inspiré par votre vision et les projets que vous portez. Votre parcours et votre expertise dans le domaine sont pour moi une source de motivation.
 
-Je me permets de vous contacter pour bénéficier de votre regard d'expert sur mon CV et mes projets techniques. Si vous avez un moment, je serais très reconnaissant d'avoir votre avis et vos conseils pour m'aider à progresser.
+Je me permets de vous contacter pour bénéficier de votre regard sur mon CV et mon portfolio. Si vous avez un moment, je serais très reconnaissant d'avoir votre avis pour m'aider à progresser.
 
-Je me demande également s'il y aurait des opportunités de stage PFE de 6 mois au sein de vos équipes.
+Je me demande aussi s'il y aurait des opportunités de stage au sein de votre équipe ou dans vos services.
 
-Portfolio : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
+[Explorer mon Portfolio Interactif ↗]({portfolio_url})
 
 Merci d'avance pour votre temps.
 
-Bien cordialement,
-Mohammed HSINY
-+212 611 424 571
-mohammedhsiny2@gmail.com"""
+Bien cordialement,"""
 
-        # 2. RESPONSABLE RH / TALENT ACQUISITION
+        # 2. VERSION RH / RECRUTEUR / TALENT ACQUISITION
         elif is_hr:
-            subject = "Stage PFE – Demande d'information"
+            subject = f"Candidature – Stage PFE en {th_hr_fr}"
             body = f"""{salutation}
 
 J'espère que vous allez bien.
 
-Je suis étudiant en dernière année d'ingénierie en Génie Électrique & Contrôle Industriel (FST Mohammedia), {tech_intro_fr}.
+Je suis étudiant en dernière année d'ingénierie en Génie Électrique, passionné par {th_tag_fr}. Je suis basé au Maroc et je prépare actuellement mon stage de fin d'études (PFE).
 
-{comp_hook_fr}. En voyant votre rôle, j'ai été inspiré par la manière dont vous accompagnez les talents et soutenez la croissance des équipes.
+Je suis très motivé par l'idée de rejoindre {company} et je suis sincèrement inspiré par vos projets et votre expertise dans le domaine.
 
-Je me permets de vous contacter pour savoir s'il existe des opportunités de stage PFE (Projet de Fin d'Études de 6 mois) dans ces domaines. Je serais ravi d'échanger avec vous et de vous présenter mon profil.
+Je me permets de vous contacter pour savoir s'il y aurait des opportunités de stage au sein de votre entreprise. Je suis disponible pour un PFE de 6 mois à partir de janvier 2027.
 
-Portfolio : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
+Je vous joins mon CV et mon portfolio pour plus de détails.
+
+[Explorer mon Portfolio Interactif ↗]({portfolio_url})
 
 Merci d'avance pour votre temps.
 
-Bien cordialement,
-Mohammed HSINY
-+212 611 424 571
-mohammedhsiny2@gmail.com"""
+Bien cordialement,"""
 
-        # 3. CEO / DIRECTEUR GÉNÉRAL
-        elif is_ceo:
-            subject = "Stage PFE – Demande de conseil"
-            body = f"""{salutation}
-
-J'espère que vous allez bien.
-
-Élève-ingénieur en Génie Électrique & Contrôle Industriel, {tech_intro_fr}.
-
-{comp_hook_fr}. J'ai découvert les réalisations de votre structure et je suis admiratif de votre vision et de votre dynamique d'innovation.
-
-Je me permets de solliciter vos précieux conseils d'entrepreneur/dirigeant sur mon profil et mon portfolio de projets, et voir si une collaboration dans le cadre de mon PFE de 6 mois pourrait s'envisager.
-
-Portfolio : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
-
-Merci d'avance pour votre écoute.
-
-Bien cordialement,
-Mohammed HSINY
-+212 611 424 571
-mohammedhsiny2@gmail.com"""
-
-        # 4. RESPONSABLE PRODUIT / BUSINESS DEVELOPER
-        elif is_product:
-            subject = "Stage PFE – Demande d'information"
-            body = f"""{salutation}
-
-J'espère que vous allez bien.
-
-Élève-ingénieur en Génie Électrique & Contrôle Industriel, {tech_intro_fr}.
-
-{comp_hook_fr}. Votre travail et votre vision produit m'ont vivement intéressé.
-
-Je me permets de vous contacter pour échanger sur vos projets actuels et voir s'il existerait des perspectives de stage PFE pour apporter mon énergie technique à vos développements.
-
-Portfolio : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
-
-Merci d'avance pour votre temps.
-
-Bien cordialement,
-Mohammed HSINY
-+212 611 424 571
-mohammedhsiny2@gmail.com"""
-
-        # 5. INGÉNIEUR / CHEF DE PROJET TECHNIQUE (Défaut)
+        # 3. VERSION INGÉNIEUR / CHEF DE PROJET / TECH LEAD / R&D (Défaut)
         else:
-            subject = "Stage PFE – Demande de conseil"
+            subject = f"Votre parcours chez {company} – Étudiant passionné par {th_short_fr}"
             body = f"""{salutation}
 
 J'espère que vous allez bien.
 
-Je suis étudiant en dernière année d'ingénierie en Génie Électrique & Contrôle Industriel, {tech_intro_fr}.
+Je suis étudiant en dernière année d'ingénierie en Génie Électrique, passionné par {th_tag_fr}. Je suis basé au Maroc et je prépare actuellement mon stage de fin d'études (PFE).
 
-{comp_hook_fr}. En découvrant votre parcours technique, j'ai été vivement inspiré par les projets sur lesquels vous intervenez.
+En découvrant votre parcours, j'ai été vraiment inspiré par votre travail et par les projets sur lesquels vous intervenez. Votre expertise dans le domaine est pour moi une source de motivation.
 
-Je me permets de vous contacter pour bénéficier de votre regard d'ingénieur sur mon portfolio de projets. Si vous avez un instant, je serais très reconnaissant d'avoir votre avis technique.
+Je me permets de vous contacter pour bénéficier de votre regard sur mon CV et mon portfolio. Si vous avez un moment, je serais très reconnaissant d'avoir votre avis pour m'aider à progresser.
 
-Je me demande également s'il y aurait des opportunités de stage PFE de 6 mois au sein de votre équipe.
+Je me demande aussi s'il y aurait des opportunités de stage au sein de votre équipe.
 
-Portfolio : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
+[Explorer mon Portfolio Interactif ↗]({portfolio_url})
 
 Merci d'avance pour votre temps.
 
-Bien cordialement,
-Mohammed HSINY
-+212 611 424 571
-mohammedhsiny2@gmail.com"""
+Bien cordialement,"""
 
     else:
         salutation = f"Hi {first_name}," if first_name else "Hello,"
-        if is_hr or is_product:
-            subject = "PFE Internship – Information Request"
-        else:
-            subject = "PFE Internship – Advice Request"
-            
-        body = f"""{salutation}
+        if is_ceo:
+            subject = f"Your vision at {company} – Student passionate about {th_short_en}"
+            body = f"""{salutation}
 
 I hope you are doing well.
 
-I am a final-year Electrical & Industrial Control Engineering student, {tech_intro_en}.
+I am a final-year Electrical Engineering student, passionate about {th_tag_en}. I am based in Morocco and currently preparing my 6-month graduation internship (PFE).
 
-{comp_hook_en}.
+I am genuinely motivated by the prospect of contributing to {company} and deeply inspired by your leadership and vision.
 
-I would be truly grateful for your insights on my projects and online portfolio:
-https://portfolio-mohammed-hsiny-ux7z.vercel.app/
+I would be very grateful for your insights and valuable feedback on my projects and online portfolio.
 
-I was also wondering if there might be graduation internship (PFE) opportunities within your team for a duration of 6 months.
+I was also wondering if there might be graduation internship opportunities within your teams.
+
+[Explore my Interactive Portfolio ↗]({portfolio_url})
+
+Thank you very much for your time.
+
+Best regards,"""
+        elif is_hr:
+            subject = f"Application – 6-Month Graduation Internship (PFE) in {th_hr_en}"
+            body = f"""{salutation}
+
+I hope you are doing well.
+
+I am a final-year Electrical Engineering student, passionate about {th_tag_en}. I am based in Morocco and currently preparing my final graduation internship (PFE).
+
+I am very excited about {company}'s innovative projects and would love to explore internship opportunities within your organization for a 6-month period starting January 2027.
+
+I have attached my resume and portfolio dossier for your review.
+
+[Explore my Interactive Portfolio ↗]({portfolio_url})
+
+Thank you very much for your consideration.
+
+Best regards,"""
+        else:
+            subject = f"Your work at {company} – Student passionate about {th_short_en}"
+            body = f"""{salutation}
+
+I hope you are doing well.
+
+I am a final-year Electrical Engineering student, passionate about {th_tag_en}. I am based in Morocco and currently preparing my 6-month graduation internship (PFE).
+
+Coming across your technical journey, I was truly inspired by your work and the engineering challenges you tackle at {company}.
+
+I would be honored to get your expert feedback on my CV and project portfolio.
+
+I was also wondering if there might be 6-month PFE internship opportunities within your engineering team.
+
+[Explore my Interactive Portfolio ↗]({portfolio_url})
 
 Thank you very much for your time and guidance.
 
-Best regards,
-Mohammed HSINY
-+212 611 424 571
-mohammedhsiny2@gmail.com"""
+Best regards,"""
 
     return GeneratedEmail(subject=subject, body=body, language=language)
 
@@ -453,31 +449,74 @@ from services.prompt_builder import (
 )
 
 def adapt_template_offline(template_text: str, contact: Dict[str, Any], profile: CandidateProfile, language: str) -> GeneratedEmail:
-    """Smart offline template adaptation replacing all variables, company references and placeholders."""
-    first_name = contact.get("first_name") or contact.get("prenom") or ""
-    name = contact.get("name") or contact.get("nom") or ""
+    """Smart offline template adaptation replacing all variables, company references, persona blocks and placeholders."""
+    if not template_text or not template_text.strip():
+        return generate_fallback_template(contact, profile, language)
+        
+    first_name = (contact.get("first_name") or contact.get("prenom") or "").strip()
+    name = (contact.get("name") or contact.get("nom") or "").strip()
     if not first_name and name:
-        first_name = name.split()[0]
+        first_name = name.split()[0].capitalize()
     salutation_name = first_name if first_name else "Madame, Monsieur"
-    company = contact.get("company") or contact.get("entreprise") or contact.get("societe") or "votre entreprise"
-    role = contact.get("role") or contact.get("poste") or ""
     
+    company = (contact.get("company") or contact.get("entreprise") or contact.get("societe") or "").strip()
+    if not company or company.lower() in ["votre entreprise", "n/a", ""]:
+        company = "votre entreprise"
+        
+    role = (contact.get("role") or contact.get("poste") or "").strip()
+    industry = (contact.get("industry") or contact.get("secteur") or "").strip()
+    persona = classify_role_category(role)
+    
+    # Check if template contains multiple persona sections (CEO / RH / Ingénieur)
     text = template_text
+    lower_text = text.lower()
+    if "version pour un" in lower_text or "version ceo" in lower_text or "version rh" in lower_text or "version ingénieur" in lower_text:
+        if persona == "CEO_DIRECTEUR":
+            match = re.search(r"(?:version\s+pour\s+(?:un\s+)?(?:ceo|directeur|fondateur)[^\n]*\n)(.*?)(?=(?:📧|📝|\*|\#)?\s*version|\Z)", text, flags=re.IGNORECASE | re.DOTALL)
+            if match and match.group(1).strip():
+                text = match.group(1).strip()
+        elif persona == "RH_TALENT":
+            match = re.search(r"(?:version\s+pour\s+(?:un\s+)?(?:rh|recruteur|talent)[^\n]*\n)(.*?)(?=(?:📧|📝|\*|\#)?\s*version|\Z)", text, flags=re.IGNORECASE | re.DOTALL)
+            if match and match.group(1).strip():
+                text = match.group(1).strip()
+        else:
+            match = re.search(r"(?:version\s+pour\s+(?:un\s+)?(?:ingénieur|ingenieur|tech|lead|r&d)[^\n]*\n)(.*?)(?=(?:📧|📝|\*|\#)?\s*version|\Z)", text, flags=re.IGNORECASE | re.DOTALL)
+            if match and match.group(1).strip():
+                text = match.group(1).strip()
+
+    # Dynamic Variable Replacements
     replacements = {
         r"\[Prénom\]|\[Prenom\]|\{\{prenom\}\}|\{\{first_name\}\}": salutation_name,
-        r"\[Nom\]|\{\{nom\}\}|\{\{last_name\}\}": name,
+        r"\[Nom\]|\{\{nom\}\}|\{\{last_name\}\}": name if name else salutation_name,
         r"\[Nom de l'entreprise\]|\[Entreprise\]|\[Société\]|\[Societe\]|\[Nom de l'organisme\]|\{\{entreprise\}\}|\{\{company\}\}": company,
         r"\[Poste\]|\[Titre\]|\{\{poste\}\}|\{\{role\}\}": role,
     }
     for pattern, repl in replacements.items():
         text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
         
-    subject = "Stage PFE – Demande de conseil"
+    # Replace static greeting like "Bonjour Bruno," or "Bonjour Alexandre," with current contact's salutation
+    text = re.sub(r"^(?:Bonjour|Bonsoir|Hi|Hello)\s+[A-Za-zÀ-ÿ-]+,", f"Bonjour {salutation_name}," if language == 'fr' else f"Hi {salutation_name},", text, flags=re.MULTILINE)
+    
+    # Replace previous static company names like "Shark Robotics" if company is different
+    if company and company.lower() != "shark robotics":
+        text = re.sub(r"\bShark\s+Robotics\b", company, text, flags=re.IGNORECASE)
+        
+    # Extract Subject Line
+    theme = detect_best_theme_for_company(company, role, industry)
+    subject = get_target_subject(persona, theme=theme, company=company, language=language)
+    
     lines = text.split("\n")
     body_lines = []
     for line in lines:
-        if line.strip().lower().startswith(("objet :", "objet:", "subject :", "subject:")):
-            subject = re.sub(r"^(?:objet|subject)\s*:\s*", "", line, flags=re.IGNORECASE).strip()
+        stripped = line.strip()
+        if stripped.lower().startswith(("objet :", "objet:", "subject :", "subject:")):
+            extracted_subj = re.sub(r"^(?:objet|subject)\s*:\s*", "", stripped, flags=re.IGNORECASE).strip()
+            if extracted_subj:
+                extracted_subj = re.sub(r"\[Nom de l'entreprise\]|\[Entreprise\]|\[Société\]|\[Societe\]|Shark Robotics", company, extracted_subj, flags=re.IGNORECASE)
+                extracted_subj = re.sub(r"\[Prénom\]|\[Prenom\]", salutation_name, extracted_subj, flags=re.IGNORECASE)
+                subject = extracted_subj
+        elif stripped.lower() in ["text", "```", "```text", "```markdown"]:
+            continue
         else:
             body_lines.append(line)
             

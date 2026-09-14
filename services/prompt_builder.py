@@ -153,32 +153,61 @@ def determine_language(contact: Dict[str, Any], user_forced_lang: Optional[str] 
     return "fr" if is_francophone(country) else "en"
 
 def classify_role_category(role: str) -> str:
-    """Classifies a job title into one of the 5 strategic outreach personas."""
+    """Classifies a job title into one of the strategic outreach personas."""
     r = (role or "").lower()
-    if any(k in r for k in ["recrut", "talent", "rh", "hr", "campus", "people", "ressources humaines", "acquisition", "headhunter", "chasseur"]):
+    if any(k in r for k in ["recrut", "talent", "rh", "hr", "campus", "people", "ressources humaines", "acquisition", "headhunter", "chasseur", "staffing"]):
         return "RH_TALENT"
-    elif any(k in r for k in ["produit", "product", "business", "bizdev", "commercial", "sales", "partenariat", "marketing", "consultant"]):
-        return "PRODUCT_BIZDEV"
-    elif any(k in r for k in ["ceo", "fondateur", "founder", "directeur général", "general manager", "president", "vp", "gerant", "managing director", "co-founder"]):
+    elif any(k in r for k in ["ceo", "fondateur", "founder", "directeur général", "directeur general", "general manager", "president", "président", "vp", "gerant", "gérant", "managing director", "co-founder", "pdg", "dg", "dirigeant", "associé", "partner", "chief executive"]):
         return "CEO_DIRECTEUR"
-    elif any(k in r for k in ["r&d", "recherche", "architect", "lead", "cto", "direction technique", "system engineer", "systèmes critiques", "expert", "scientifique", "innovation"]):
+    elif any(k in r for k in ["r&d", "recherche", "architect", "lead", "cto", "direction technique", "system engineer", "systèmes critiques", "expert", "scientifique", "innovation", "tech lead"]):
         return "RD_LEAD_ARCHITECT"
     elif any(k in r for k in ["ingenieur", "ingénieur", "engineer", "chef de projet", "software", "hardware", "embarque", "embarqué", "robotique", "drones", "automatisme", "developpeur", "développeur"]):
         return "INGENIEUR_TECH"
+    elif any(k in r for k in ["produit", "product", "business", "bizdev", "commercial", "sales", "partenariat", "marketing", "consultant"]):
+        return "PRODUCT_BIZDEV"
     return "INGENIEUR_TECH"
 
-def get_target_subject(persona: str, theme: str = "auto", language: str = "fr") -> str:
-    """Returns an attractive, contextualized subject line."""
-    if language == "fr":
-        if persona in ["INGENIEUR_TECH", "RD_LEAD_ARCHITECT", "CEO_DIRECTEUR"]:
-            return "Stage PFE – Demande de conseil"
-        else:
-            return "Stage PFE – Demande d'information"
+def get_target_subject(persona: str, theme: str = "auto", company: str = "", language: str = "fr") -> str:
+    """Returns an attractive, persona-tailored subject line."""
+    if theme == "drones_robotics":
+        th_fr, th_hr_fr = "les drones et la robotique", "Drones, Robotique & Systèmes Embarqués"
+        th_en, th_hr_en = "drones & robotics", "Drones & Embedded Systems"
+    elif theme == "solar_energy":
+        th_fr, th_hr_fr = "l'énergie solaire photovoltaïque", "Énergie Solaire & Génie Électrique"
+        th_en, th_hr_en = "solar energy", "Solar Energy & Power Systems"
+    elif theme == "automation_scada":
+        th_fr, th_hr_fr = "l'automatisme industriel & SCADA", "Automatisme Industriel & SCADA"
+        th_en, th_hr_en = "industrial automation", "Industrial Automation & SCADA"
+    elif theme == "embedded_edge_ai":
+        th_fr, th_hr_fr = "les systèmes embarqués temps réel", "Systèmes Embarqués & Edge AI"
+        th_en, th_hr_en = "embedded systems", "Embedded Systems & Edge AI"
+    elif theme == "electrical_power":
+        th_fr, th_hr_fr = "le génie électrique et l'électrotechnique", "Génie Électrique & Électrotechnique"
+        th_en, th_hr_en = "electrical engineering", "Electrical Engineering & Power Systems"
     else:
-        if persona in ["INGENIEUR_TECH", "RD_LEAD_ARCHITECT", "CEO_DIRECTEUR"]:
-            return "PFE Internship – Advice Request"
+        th_fr, th_hr_fr = "les systèmes embarqués et les drones", "Génie Électrique & Systèmes Embarqués"
+        th_en, th_hr_en = "embedded systems & robotics", "Electrical & Embedded Systems"
+
+    comp_name = company.strip() if company.strip() and company.strip().lower() not in ["votre entreprise", "n/a", ""] else "[Entreprise]"
+
+    if language == "fr":
+        if persona == "CEO_DIRECTEUR":
+            return f"Votre vision chez {comp_name} – Étudiant passionné par {th_fr}"
+        elif persona == "RH_TALENT":
+            return f"Candidature – Stage PFE en {th_hr_fr}"
+        elif persona in ["INGENIEUR_TECH", "RD_LEAD_ARCHITECT"]:
+            return f"Votre parcours chez {comp_name} – Étudiant passionné par {th_fr}"
         else:
-            return "PFE Internship – Information Request"
+            return f"Stage PFE – Demande de conseil chez {comp_name}"
+    else:
+        if persona == "CEO_DIRECTEUR":
+            return f"Your vision at {comp_name} – Student passionate about {th_en}"
+        elif persona == "RH_TALENT":
+            return f"Application – 6-Month Graduation Internship (PFE) in {th_hr_en}"
+        elif persona in ["INGENIEUR_TECH", "RD_LEAD_ARCHITECT"]:
+            return f"Your work at {comp_name} – Student passionate about {th_en}"
+        else:
+            return f"PFE Internship Opportunity at {comp_name}"
 
 def build_system_prompt(theme: str = "auto", tone: str = "persuasive_tech") -> str:
     theme_info = THEMES_CATALOG.get(theme, THEMES_CATALOG["auto"])
@@ -192,7 +221,7 @@ PROFIL CANDIDAT :
 - Formation : Élève-Ingénieur en Génie Électrique & Contrôle Industriel (FST Mohammedia, Maroc)
 - Rôle associatif : Président du Club Robotique & Innovation RoboThings (FSTM)
 - Portfolio en ligne : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
-- Contact : mohammedhsiny2@gmail.com | +212 611 424 571
+- Disponibilité : Stage PFE de 6 mois à partir de Janvier 2027
 
 THÉMATIQUE TECHNIQUE SÉLECTIONNÉE :
 - Thème : {theme_info['label']}
@@ -201,21 +230,51 @@ THÉMATIQUE TECHNIQUE SÉLECTIONNÉE :
 STYLE RÉDACTIONNEL :
 - {style_info['prompt_fr']}
 
-RÈGLES D'OR DE PERSONNALISATION PROFONDE :
-1. **Accroche Contextualisée sur l'Entreprise** : Ne te contente JAMAIS d'un copier-coller générique. Analyse l'activité de l'entreprise et montre précisément pourquoi Mohammed s'intéresse à leurs projets, leurs défis techniques ou leurs réalisations.
-2. **Alignement des Compétences** : Si l'entreprise fait du Solaire/Énergie, oriente les arguments vers le photovoltaïque, les convertisseurs et les réseaux. Si elle fait des Drones/Robotique, oriente vers l'autonomie Pixhawk/ROS et RoboThings. Si elle fait de l'Automatisme, oriente vers Siemens/Schneider PLC et SCADA.
-3. **Approche Psychologique par Rôle** :
-   - *Ingénieur / Chef de projet* : Demander son regard technique d'aîné/expert sur le portfolio avant de mentionner un stage.
-   - *Directeur R&D / Lead Tech* : Parler d'innovation, de défis de conception et de systèmes complexes.
-   - *RH / Talent Acquisition* : Parler de motivation, d'adéquation au projet d'entreprise et de période de stage PFE (6 mois).
-   - *CEO / Fondateur* : Message court, direct, inspiré par sa vision d'entreprise et orienté création de valeur.
-4. **Variations Humaines** : Varie la tournure des phrases, évite les formules robotiques répétitives.
-5. **Lien Portfolio & Coordonnées** : Insère toujours le lien du portfolio et la signature propre.
+STRUCTURE STRICTE SELON LE RÔLE (PERSONA DU DESTINATAIRE) :
+
+1. VERSION POUR UN CEO / FONDATEUR / DIRIGEANT (CEO_DIRECTEUR) :
+   - Objet : Votre vision chez [Nom de l'entreprise] – Étudiant passionné par [Thématique]
+   - Salutation : Bonjour [Prénom],
+   - Paragraphe 1 : J'espère que vous allez bien.
+   - Paragraphe 2 : Je suis étudiant en dernière année d'ingénierie en Génie Électrique, passionné par [Thématique]. Je suis basé au Maroc et je prépare actuellement mon stage de fin d'études (PFE).
+   - Paragraphe 3 : Je suis très motivé par l'idée de rejoindre [Nom de l'entreprise] et je suis sincèrement inspiré par votre vision et les projets que vous portez. Votre parcours et votre expertise dans le domaine sont pour moi une source de motivation.
+   - Paragraphe 4 : Je me permets de vous contacter pour bénéficier de votre regard sur mon CV et mon portfolio. Si vous avez un moment, je serais très reconnaissant d'avoir votre avis pour m'aider à progresser.
+   - Paragraphe 5 : Je me demande aussi s'il y aurait des opportunités de stage au sein de votre équipe ou dans vos services.
+   - Lien : [Explorer mon Portfolio Interactif ↗](https://portfolio-mohammed-hsiny-ux7z.vercel.app/)
+   - Clôture : Merci d'avance pour votre temps.\n\nBien cordialement,
+
+2. VERSION POUR UN RH / RECRUTEUR / TALENT ACQUISITION (RH_TALENT) :
+   - Objet : Candidature – Stage PFE en [Thématique]
+   - Salutation : Bonjour [Prénom],
+   - Paragraphe 1 : J'espère que vous allez bien.
+   - Paragraphe 2 : Je suis étudiant en dernière année d'ingénierie en Génie Électrique, passionné par [Thématique]. Je suis basé au Maroc et je prépare actuellement mon stage de fin d'études (PFE).
+   - Paragraphe 3 : Je suis très motivé par l'idée de rejoindre [Nom de l'entreprise] et je suis sincèrement inspiré par vos projets et votre expertise dans le domaine.
+   - Paragraphe 4 : Je me permets de vous contacter pour savoir s'il y aurait des opportunités de stage au sein de votre entreprise. Je suis disponible pour un PFE de 6 mois à partir de janvier 2027.
+   - Paragraphe 5 : Je vous joins mon CV et mon portfolio pour plus de détails.
+   - Lien : [Explorer mon Portfolio Interactif ↗](https://portfolio-mohammed-hsiny-ux7z.vercel.app/)
+   - Clôture : Merci d'avance pour votre temps.\n\nBien cordialement,
+
+3. VERSION POUR UN INGÉNIEUR / CHEF DE PROJET / TECH LEAD / R&D (INGENIEUR_TECH / RD_LEAD_ARCHITECT) :
+   - Objet : Votre parcours chez [Nom de l'entreprise] – Étudiant passionné par [Thématique]
+   - Salutation : Bonjour [Prénom],
+   - Paragraphe 1 : J'espère que vous allez bien.
+   - Paragraphe 2 : Je suis étudiant en dernière année d'ingénierie en Génie Électrique, passionné par [Thématique]. Je suis basé au Maroc et je prépare actuellement mon stage de fin d'études (PFE).
+   - Paragraphe 3 : En découvrant votre parcours, j'ai été vraiment inspiré par votre travail et par les projets sur lesquels vous intervenez. Votre expertise dans le domaine est pour moi une source de motivation.
+   - Paragraphe 4 : Je me permets de vous contacter pour bénéficier de votre regard sur mon CV et mon portfolio. Si vous avez un moment, je serais très reconnaissant d'avoir votre avis pour m'aider à progresser.
+   - Paragraphe 5 : Je me demande aussi s'il y aurait des opportunités de stage au sein de votre équipe.
+   - Lien : [Explorer mon Portfolio Interactif ↗](https://portfolio-mohammed-hsiny-ux7z.vercel.app/)
+   - Clôture : Merci d'avance pour votre temps.\n\nBien cordialement,
+
+RÈGLES D'OR ABSOLUES :
+1. TOUJOURS insérer le prénom réel du contact (ou 'Madame, Monsieur' si absent).
+2. TOUJOURS insérer le vrai nom de l'entreprise cible (remplacer dynamiquement toute mention de société).
+3. AUCUNE phrase répétée ou redondante.
+4. Terminer toujours par 'Bien cordialement,' sans signature texte superflue (la signature électronique complète est insérée automatiquement).
 
 FORMAT DE SORTIE (JSON STRICT OBLIGATOIRE) :
 ```json
 {{
-  "subject": "Objet percutant et professionnel",
+  "subject": "Objet adapté selon le persona et l'entreprise",
   "body_plain_text": "Le texte complet et fluide de l'email"
 }}
 ```
@@ -235,7 +294,7 @@ def build_user_prompt(
     if not first_name and full_name and full_name != "Madame, Monsieur":
         first_name = full_name.split()[0]
         
-    role = contact.get("role") or contact.get("poste") or contact.get("title") or "Responsable Technique"
+    role = contact.get("role") or contact.get("poste") or contact.get("title") or "Ingénieur"
     company = contact.get("company") or contact.get("entreprise") or contact.get("societe") or "votre entreprise"
     industry = contact.get("industry") or contact.get("secteur") or ""
     persona = classify_role_category(role)
@@ -252,19 +311,20 @@ def build_user_prompt(
 
     if language == "fr":
         return f"""
-DONNÉES DU DESTINATAIRE :
+DONNÉES DU DESTINATAIRE (ISSUES DU FICHIER EXCEL) :
 - Prénom : {first_name}
 - Nom complet : {full_name}
+- Salutation exacte : Bonjour {salutation_name},
 - Poste exact : {role}
-- Catégorie de profil : {persona}
-- Société / Entreprise : {company}
-- Secteur / Domaine : {industry}
+- Persona détecté : {persona} (CEO_DIRECTEUR / RH_TALENT / INGENIEUR_TECH)
+- Société cible : {company}
+- Secteur / Industrie : {industry}
 
-ANGLE TECHNIQUE À ADOPTER :
+ANGLE TECHNIQUE :
 - Thème : {theme_meta['label']}
-- Piliers à mettre en avant : {theme_meta['focus_fr']}
+- Compétences à valoriser : {theme_meta['focus_fr']}
 {custom_block}
-Rédige un email ultra-personnalisé en français pour {salutation_name} chez {company}. L'email doit être chaleureux, professionnel, valoriser les projets de {company} et mettre en avant les compétences de Mohammed adaptées à cette entreprise.
+Rédige l'email parfait pour {salutation_name} chez {company} en respectant strictement la structure adaptée à son persona ({persona}).
 
 FORMAT DE SORTIE JSON STRICT :
 ```json
@@ -276,24 +336,25 @@ FORMAT DE SORTIE JSON STRICT :
 """
     else:
         return f"""
-RECIPIENT DATA:
+RECIPIENT DATA (FROM EXCEL FILE):
 - First Name: {first_name}
 - Full Name: {full_name}
-- Role / Job Title: {role}
-- Persona: {persona}
-- Company: {company}
+- Salutation: Hi {salutation_name},
+- Exact Role: {role}
+- Persona Category: {persona} (CEO_DIRECTEUR / RH_TALENT / INGENIEUR_TECH)
+- Target Company: {company}
 - Industry: {industry}
 
 TECHNICAL FOCUS ANGLE:
 - Theme: {theme_meta['label']}
-- Key highlights: {theme_meta['focus_en']}
+- Highlights: {theme_meta['focus_en']}
 {custom_block}
-Write a highly personalized cold outreach email in English for {salutation_name} at {company}. The email should be engaging, technical, highlight why {company}'s work is inspiring, and present Mohammed's tailored value proposition.
+Write the perfect outreach email in English for {salutation_name} at {company} following the precise structure for persona {persona}.
 
 JSON STRICT OUTPUT:
 ```json
 {{
-  "subject": "Compelling subject line",
+  "subject": "Persona-aligned subject line",
   "body_plain_text": "Full email body"
 }}
 ```
@@ -301,20 +362,23 @@ JSON STRICT OUTPUT:
 
 def build_template_adaptation_system_prompt() -> str:
     return """Tu es un assistant expert en communication professionnelle et cold outreach pour Mohammed HSINY.
-L'utilisateur te fournit un MODÈLE D'EMAIL DE RÉFÉRENCE (un template rédigé par ses soins).
+L'utilisateur te fournit un MODÈLE D'EMAIL DE RÉFÉRENCE (un template ou exemple rédigé par ses soins).
 
 TON RÔLE :
-Conserver fidèlement le style, la structure et la logique du texte de référence fourni par Mohammed, tout en ADAPTANT ET CONTEXTUALISANT intelligemment pour chaque destinataire :
-1. **Identité du Destinataire** : Remplacer les formules de salutation ([Prénom], [Nom], Madame, Monsieur) de façon naturelle.
-2. **Entreprise Cible** : Remplacer [Entreprise], [Société], et contextualiser les phrases qui mentionnent l'activité ou les projets de cette société.
-3. **Activité & Projets** : Si le texte mentionne des projets, adapte-les à ce que fait réellement l'entreprise (Drones, Solaire, Automatisme, Électrique, etc.).
-4. **Fluidité & Qualité** : Garantir un texte parfait sans balises résiduelles (supprimer les crochets `[...]` ou `{{...}}`).
-5. **Signature** : Conserver la signature de Mohammed HSINY avec le lien de son portfolio (https://portfolio-mohammed-hsiny-ux7z.vercel.app/).
+Adapter intelligemment cet email de référence pour CHAQUE destinataire cible :
+1. **Remplacement Intégral des Noms & Salutations** : Si le modèle contient 'Bonjour Bruno,' ou tout autre prénom/nom, remplace-le OBLIGATOIREMENT par le prénom du contact cible ('Bonjour [Prénom],').
+2. **Remplacement Intégral de l'Entreprise** : Si le modèle contient 'Shark Robotics' ou toute autre entreprise, remplace-le OBLIGATOIREMENT par la société réelle du contact.
+3. **Adaptation par Rôle / Persona (Excel)** :
+   - Si le contact est un **CEO / Dirigeant** : adapter le message pour parler de sa vision et solliciter son regard de dirigeant.
+   - Si le contact est un **RH / Recruteur** : adapter le message en candidature directe pour un PFE de 6 mois à partir de janvier 2027.
+   - Si le contact est un **Ingénieur / Technique / R&D** : adapter le message pour valoriser son parcours technique et demander son avis d'ingénieur/expert.
+4. **Thématique & Activité** : Adapter les mentions techniques selon le secteur d'activité réel de l'entreprise (Drones, Solaire, Automatisme, Systèmes Embarqués, Génie Électrique).
+5. **Propreté** : Aucun crochet résiduel `[...]`, aucun doublon de phrase.
 
 FORMAT DE SORTIE (JSON STRICT OBLIGATOIRE) :
 ```json
 {
-  "subject": "Objet adapté à l'entreprise",
+  "subject": "Objet adapté à l'entreprise et au persona",
   "body_plain_text": "Le texte complet de l'email adapté"
 }
 ```
