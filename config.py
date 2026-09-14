@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Dict
 from dotenv import load_dotenv
 
@@ -15,7 +15,7 @@ DATA_DIR.mkdir(exist_ok=True, parents=True)
 UPLOADS_DIR.mkdir(exist_ok=True, parents=True)
 
 class CandidateProfile(BaseModel):
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow", validate_assignment=False, arbitrary_types_allowed=True)
     name: str = "Mohammed HSINY"
     title_fr: str = "Élève-Ingénieur en Génie Électrique & Contrôle Industriel"
     title_en: str = "Electrical Engineering & Industrial Control Student"
@@ -108,7 +108,7 @@ class CandidateProfile(BaseModel):
     ]
 
 class SMTPSettings(BaseModel):
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow", validate_assignment=False, arbitrary_types_allowed=True)
     provider: str = "gmail"  # gmail, outlook, custom
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587
@@ -122,7 +122,7 @@ class SMTPSettings(BaseModel):
     daily_limit: int = 500
 
 class LLMSettings(BaseModel):
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow", validate_assignment=False, arbitrary_types_allowed=True)
     provider: str = "gemini"  # gemini, openai, groq, deepseek, ollama, openrouter
     api_key: str = Field(default_factory=lambda: os.getenv("GEMINI_API_KEY", ""))
     model_name: str = "gemini-2.0-flash"

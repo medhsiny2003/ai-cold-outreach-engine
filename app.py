@@ -605,10 +605,14 @@ with tab1:
         if up_cv_fr is not None:
             with open(cv_fr_file, "wb") as f_out:
                 f_out.write(up_cv_fr.getbuffer())
-            profile.cv_fr_path = str(cv_fr_file)
+            try:
+                profile.cv_fr_path = str(cv_fr_file)
+            except Exception:
+                pass
             save_profile(profile)
+            st.session_state.profile = profile
             st.success("🎉 CV Français mis à jour et sauvegardé avec succès !")
-            time.sleep(1)
+            time.sleep(0.8)
             st.rerun()
 
     with col_cv2:
@@ -624,10 +628,14 @@ with tab1:
         if up_cv_en is not None:
             with open(cv_en_file, "wb") as f_out:
                 f_out.write(up_cv_en.getbuffer())
-            profile.cv_en_path = str(cv_en_file)
+            try:
+                profile.cv_en_path = str(cv_en_file)
+            except Exception:
+                pass
             save_profile(profile)
+            st.session_state.profile = profile
             st.success("🎉 CV Anglais mis à jour et sauvegardé avec succès !")
-            time.sleep(1)
+            time.sleep(0.8)
             st.rerun()
 
     with col_cv3:
@@ -643,10 +651,14 @@ with tab1:
         if up_pf is not None:
             with open(portfolio_file, "wb") as f_out:
                 f_out.write(up_pf.getbuffer())
-            profile.portfolio_pdf_path = str(portfolio_file)
+            try:
+                profile.portfolio_pdf_path = str(portfolio_file)
+            except Exception:
+                pass
             save_profile(profile)
+            st.session_state.profile = profile
             st.success("🎉 Portfolio PDF mis à jour et sauvegardé avec succès !")
-            time.sleep(1)
+            time.sleep(0.8)
             st.rerun()
 
 # -------------------------------------------------------------
