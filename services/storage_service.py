@@ -368,3 +368,50 @@ def mark_response_read(resp_id: int):
     with get_db_connection() as conn:
         conn.execute("UPDATE recruiter_responses SET is_read = 1 WHERE id = ?", (resp_id,))
         conn.commit()
+
+def delete_contact_by_id(contact_id: int):
+    """Deletes a single contact by its ID."""
+    with get_db_connection() as conn:
+        conn.execute("DELETE FROM contacts WHERE id = ?", (contact_id,))
+        conn.commit()
+
+def delete_contacts_bulk(contact_ids: List[int]) -> int:
+    """Deletes multiple contacts by IDs."""
+    if not contact_ids:
+        return 0
+    with get_db_connection() as conn:
+        placeholders = ",".join("?" * len(contact_ids))
+        cur = conn.execute(f"DELETE FROM contacts WHERE id IN ({placeholders})", contact_ids)
+        conn.commit()
+        return cur.rowcount
+
+def update_contacts_status_bulk(contact_ids: List[int], new_status: str) -> int:
+    """Updates status for a batch of contact IDs (e.g. 'excluded', 'pending', 'approved')."""
+    if not contact_ids:
+        return 0
+    with get_db_connection() as conn:
+        placeholders = ",".join("?" * len(contact_ids))
+        params = [new_status, time.time()] + list(contact_ids)
+        cur = conn.execute(f"UPDATE contacts SET status = ?, updated_at = ? WHERE id IN ({placeholders})", params)
+        conn.commit()
+        return cur.rowcount
+
+def reset_all_data_and_contacts(clear_sent_logs: bool = False, clear_uploads: bool = False):
+    """Resets the contacts table and optionally sent logs and uploads."""
+    with get_db_connection() as conn:
+        conn.execute("DELETE FROM contacts")
+        if clear_sent_logs:
+            conn.execute("DELETE FROM sent_logs")
+            conn.execute("DELETE FROM recruiter_responses")
+        conn.commit()
+        
+    if clear_uploads:
+        from config import UPLOADS_DIR
+        if UPLOADS_DIR.is_dir():
+            for f in UPLOADS_DIR.iterdir():
+                if f.is_file() and not f.name.startswith("CV_") and not f.name.startswith("Portfolio_"):
+                    try:
+                        f.unlink()
+                    except Exception:
+                        pass
+

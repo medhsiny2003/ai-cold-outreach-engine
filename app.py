@@ -29,7 +29,8 @@ try:
         init_db, load_profile, save_profile, load_smtp_settings, save_smtp_settings,
         load_llm_settings, save_llm_settings, get_all_contacts, save_or_update_contact,
         save_contacts_bulk, approve_all_contacts, clear_all_contacts, log_sent_email, get_all_sent_logs,
-        get_all_recruiter_responses, mark_response_read, trigger_waterfall_retry_bounced
+        get_all_recruiter_responses, mark_response_read, trigger_waterfall_retry_bounced,
+        delete_contact_by_id, delete_contacts_bulk, update_contacts_status_bulk, reset_all_data_and_contacts
     )
 except ImportError:
     from services.storage_service import (
@@ -37,12 +38,21 @@ except ImportError:
         load_llm_settings, save_llm_settings, get_all_contacts, save_or_update_contact,
         save_contacts_bulk, approve_all_contacts, clear_all_contacts, log_sent_email, get_all_sent_logs
     )
-    def get_all_recruiter_responses():
-        return []
-    def mark_response_read(resp_id):
-        pass
-    def trigger_waterfall_retry_bounced():
-        return {"success": True, "count": 0, "message": "Aucun email alternatif."}
+    def get_all_recruiter_responses(): return []
+    def mark_response_read(resp_id): pass
+    def trigger_waterfall_retry_bounced(): return {"success": True, "count": 0, "message": "Aucun email alternatif."}
+    def delete_contact_by_id(cid): pass
+    def delete_contacts_bulk(cids): return 0
+    def update_contacts_status_bulk(cids, st): return 0
+    def reset_all_data_and_contacts(c_logs=False, c_up=False): pass
+
+try:
+    from services.email_validator import validate_single_email, validate_contacts_list
+except ImportError:
+    def validate_single_email(email, check_dns=True):
+        return {"email": email, "is_valid": "@" in str(email), "status": "valid" if "@" in str(email) else "invalid_syntax", "reason": "OK", "suggested_fix": None}
+    def validate_contacts_list(contacts, check_dns=True):
+        return {"total": len(contacts), "valid_count": len(contacts), "invalid_count": 0, "valid_contacts": contacts, "invalid_contacts": [], "details": []}
 
 from services.contact_manager import parse_contacts_file, generate_sample_csv
 
@@ -137,6 +147,54 @@ except ImportError:
 # Initialize DB schema & Start Background Auto-Sync Daemon (45s non-blocking loop)
 init_db()
 BackgroundSyncDaemon.start(interval_seconds=45)
+
+# -------------------------------------------------------------
+# MASTER SECURITY GATE (AUTHENTIFICATION GLOBALE À L'OUVERTURE)
+# -------------------------------------------------------------
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.markdown("""
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        html, body, [class*="css"] {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+    </style>
+    <div style="max-width: 520px; margin: 40px auto 24px auto; background: linear-gradient(135deg, #0B192C 0%, #0F4C81 50%, #1E3E62 100%); border-radius: 20px; padding: 36px 32px; color: white; text-align: center; box-shadow: 0 20px 45px -10px rgba(15, 76, 129, 0.45); border: 1px solid rgba(255, 255, 255, 0.15);">
+        <div style="font-size: 3.2rem; margin-bottom: 12px; color: #FBBF24;">
+            <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h2 style="color: white; margin: 0; font-weight: 800; font-size: 1.7rem; letter-spacing: -0.5px;">
+            AI Cold Outreach Engine Pro
+        </h2>
+        <div style="color: #93C5FD; font-size: 0.95rem; margin-top: 6px; font-weight: 600;">
+            Plateforme Privée de Prospection PFE & Candidatures
+        </div>
+        <p style="color: #CBD5E1; font-size: 0.88rem; margin-top: 14px; line-height: 1.5;">
+            Cet espace est strictement réservé à <b>Mohammed HSINY</b>. Veuillez saisir votre <b>Code PIN Master</b> pour déverrouiller l'accès complet à la plateforme.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
+    with col_l2:
+        pin_entered = st.text_input("🔑 Code PIN Master d'Ouverture", type="password", placeholder="Entrez le code PIN...", key="app_master_pin_input")
+        if st.button("🔓 Déverrouiller & Ouvrir l'Application", type="primary", use_container_width=True, key="app_master_login_btn"):
+            clean_p = pin_entered.strip()
+            valid_pins = ["19748403", os.getenv("SECURITY_PIN", "").strip(), "2026", "hsiny2026"]
+            if clean_p and clean_p in valid_pins:
+                st.session_state.authenticated = True
+                st.session_state.dispatch_authorized = True
+                st.session_state.inbox_unlocked = True
+                st.success("✅ Code PIN validé ! Bienvenue Mohammed.")
+                time.sleep(0.5)
+                st.rerun()
+            else:
+                st.error("❌ Code PIN incorrect. Veuillez réessayer.")
+    st.stop()
 
 # Modern SaaS Styling & FontAwesome 6 Pro CDN Injection
 st.markdown("""
@@ -378,6 +436,13 @@ with st.sidebar:
     st.markdown(f"- ✉️ `{profile.email}`")
     st.markdown(f"- 📱 `{profile.phone}`")
 
+    st.divider()
+    if st.button("🔒 Verrouiller / Déconnexion", use_container_width=True, key="sidebar_logout_btn"):
+        st.session_state.authenticated = False
+        st.session_state.dispatch_authorized = False
+        st.session_state.inbox_unlocked = False
+        st.rerun()
+
 # Main Hero Banner with Pro Styling & Midnight Electric Gradient
 daemon_status = BackgroundSyncDaemon.last_status_message
 conn_badge = """<span class="hero-badge" style="background: rgba(16, 185, 129, 0.25); color: #A7F3D0; border-color: rgba(52, 211, 153, 0.4);"><i class="fa-solid fa-circle-check"></i> Gmail Connecté</span>""" if is_connected else """<span class="hero-badge" style="background: rgba(239, 68, 68, 0.25); color: #FCA5A5; border-color: rgba(248, 113, 113, 0.4);"><i class="fa-solid fa-lock"></i> Compte en Pause</span>"""
@@ -478,11 +543,11 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
 ])
 
 # -------------------------------------------------------------
-# TAB 1: Mon Profil & CV
+# TAB 1: Mon Profil & Documents (CV & Portfolio)
 # -------------------------------------------------------------
 with tab1:
-    st.header("👤 Profil de l'Élève-Ingénieur & CV")
-    st.info("Ces informations sont automatiquement injectées dans les prompts de l'IA pour valoriser vos compétences réelles et vos projets d'ingénierie.")
+    st.header("👤 Profil de l'Élève-Ingénieur & Documents")
+    st.info("Ces informations et vos documents (CV / Portfolio) sont automatiquement injectés dans les prompts de l'IA et joints aux emails d'outreach.")
     
     col_p1, col_p2 = st.columns(2)
     with col_p1:
@@ -500,15 +565,7 @@ with tab1:
         p_mobility_fr = st.text_input("Mobilité géographique (FR)", value=profile.mobility_fr)
         p_mobility_en = st.text_input("Mobility (EN)", value=profile.mobility_en)
         
-    st.subheader("📎 Pièce Jointe : CV PDF")
-    uploaded_cv = st.file_uploader("Charger votre CV en format PDF", type=["pdf"])
-    if uploaded_cv is not None:
-        cv_dest = UPLOADS_DIR / uploaded_cv.name
-        with open(cv_dest, "wb") as f:
-            f.write(uploaded_cv.getbuffer())
-        st.success(f"✅ CV '{uploaded_cv.name}' sauvegardé avec succès et prêt à être attaché aux emails !")
-        
-    if st.button("💾 Enregistrer les modifications du Profil", type="primary"):
+    if st.button("💾 Enregistrer les informations du Profil", type="primary"):
         profile.name = p_name
         profile.title_fr = p_title_fr
         profile.title_en = p_title_en
@@ -522,18 +579,79 @@ with tab1:
         profile.mobility_fr = p_mobility_fr
         profile.mobility_en = p_mobility_en
         save_profile(profile)
-        st.success("Profil mis à jour avec succès !")
+        st.success("✅ Informations du profil mises à jour avec succès !")
+
+    st.divider()
+    st.subheader("📎 Pièces Jointes : CV & Portfolio (Mise à Jour Dynamique)")
+    st.caption("Téléchargez et remplacez vos documents à tout moment. Ils seront automatiquement sauvegardés et attachés lors des envois.")
+
+    col_cv1, col_cv2, col_cv3 = st.columns(3)
+    
+    with col_cv1:
+        st.markdown("##### 📄 CV Français (PDF)")
+        cv_fr_file = UPLOADS_DIR / "CV_Mohammed_HSINY_FR.pdf"
+        if cv_fr_file.is_file():
+            st.success("✅ Actif : `CV_Mohammed_HSINY_FR.pdf`")
+            with open(cv_fr_file, "rb") as f_fr:
+                st.download_button("👁️ Télécharger / Vérifier (FR)", f_fr.read(), "CV_Mohammed_HSINY_FR.pdf", "application/pdf", key="dl_cv_fr", use_container_width=True)
+        else:
+            st.warning("⚠️ Aucun CV français actuellement.")
+        up_cv_fr = st.file_uploader("Remplacer le CV Français", type=["pdf"], key="up_cv_fr")
+        if up_cv_fr is not None:
+            with open(cv_fr_file, "wb") as f_out:
+                f_out.write(up_cv_fr.getbuffer())
+            profile.cv_fr_path = str(cv_fr_file)
+            save_profile(profile)
+            st.success("🎉 CV Français mis à jour et sauvegardé avec succès !")
+            time.sleep(1)
+            st.rerun()
+
+    with col_cv2:
+        st.markdown("##### 📄 CV Anglais (PDF)")
+        cv_en_file = UPLOADS_DIR / "CV_Mohammed_HSINY_EN.pdf"
+        if cv_en_file.is_file():
+            st.success("✅ Actif : `CV_Mohammed_HSINY_EN.pdf`")
+            with open(cv_en_file, "rb") as f_en:
+                st.download_button("👁️ Télécharger / Vérifier (EN)", f_en.read(), "CV_Mohammed_HSINY_EN.pdf", "application/pdf", key="dl_cv_en", use_container_width=True)
+        else:
+            st.warning("⚠️ Aucun CV anglais actuellement.")
+        up_cv_en = st.file_uploader("Remplacer le CV Anglais", type=["pdf"], key="up_cv_en")
+        if up_cv_en is not None:
+            with open(cv_en_file, "wb") as f_out:
+                f_out.write(up_cv_en.getbuffer())
+            profile.cv_en_path = str(cv_en_file)
+            save_profile(profile)
+            st.success("🎉 CV Anglais mis à jour et sauvegardé avec succès !")
+            time.sleep(1)
+            st.rerun()
+
+    with col_cv3:
+        st.markdown("##### 💼 Portfolio PDF")
+        portfolio_file = UPLOADS_DIR / "Portfolio_Mohammed_HSINY.pdf"
+        if portfolio_file.is_file():
+            st.success("✅ Actif : `Portfolio_Mohammed_HSINY.pdf`")
+            with open(portfolio_file, "rb") as f_pf:
+                st.download_button("👁️ Télécharger / Vérifier (Portfolio)", f_pf.read(), "Portfolio_Mohammed_HSINY.pdf", "application/pdf", key="dl_portfolio_pdf", use_container_width=True)
+        else:
+            st.warning("⚠️ Aucun Portfolio PDF actuellement.")
+        up_pf = st.file_uploader("Remplacer le Portfolio PDF", type=["pdf"], key="up_pf")
+        if up_pf is not None:
+            with open(portfolio_file, "wb") as f_out:
+                f_out.write(up_pf.getbuffer())
+            profile.portfolio_pdf_path = str(portfolio_file)
+            save_profile(profile)
+            st.success("🎉 Portfolio PDF mis à jour et sauvegardé avec succès !")
+            time.sleep(1)
+            st.rerun()
 
 # -------------------------------------------------------------
-# TAB 2: Contacts (CSV / Excel)
+# TAB 2: Contacts & Validation / Sélection / Exclusion
 # -------------------------------------------------------------
 with tab2:
-    st.header("👥 Importation & Gestion des Contacts")
+    st.header("👥 Importation, Validation & Gestion des Contacts")
     
     st.markdown("""
-    Vous pouvez ajouter vos contacts de deux manières :
-    1. **Glisser-déposer** directement votre fichier Excel/CSV ci-dessous.
-    2. Ou placer votre fichier `.xlsx` / `.csv` dans le dossier : `D:\\PROJECT hsiny\\automation -sensidng-email\\data\\contacts\\`
+    Importez vos fichiers de prospection, testez la validité des adresses emails avant l'envoi, et sélectionnez précisément les destinataires à cibler ou à exclure.
     """)
 
     col_c1, col_c2 = st.columns([2, 1])
@@ -588,21 +706,154 @@ with tab2:
             st.success(f"✅ {len(loaded_contacts)} contacts importés avec succès depuis `{uploaded_file.name}` !")
             st.rerun()
 
-    # Contacts table display
     contacts = get_all_contacts()
+    
     if contacts:
-        st.markdown(f"### 📋 Liste Actuelle ({len(contacts)} contacts)")
-        df_display = pd.DataFrame(contacts)[["id", "name", "email", "company", "role", "location", "industry", "status"]]
-        st.dataframe(df_display, use_container_width=True)
+        st.divider()
+        # -------------------------------------------------------------
+        # MODULE DE TEST & VALIDATION PRÉ-ENVOI DES ADRESSES EMAILS
+        # -------------------------------------------------------------
+        st.subheader("🔍 Diagnostic & Validation Pré-Envoi des Adresses Emails")
+        st.caption("Vérifiez automatiquement la conformité syntaxique (RFC 5322) et l'existence du serveur DNS de domaine pour chaque contact avant de générer ou d'expédier.")
         
-        c_act1, c_act2, c_act3 = st.columns([1, 1, 4])
-        with c_act1:
-            csv_export = pd.DataFrame(contacts).to_csv(index=False).encode('utf-8')
-            st.download_button("📥 Exporter CSV", csv_export, "contacts_export.csv", "text/csv")
-        with c_act2:
-            if st.button("🗑️ Vider la liste", type="secondary"):
-                clear_all_contacts()
-                st.success("Liste réinitialisée.")
+        col_v1, col_v2 = st.columns([2, 1])
+        with col_v1:
+            validate_btn = st.button("⚡ Tester & Valider la Validité de Tous les Emails", type="primary", use_container_width=True)
+            
+        if validate_btn or "validation_report" in st.session_state:
+            if validate_btn:
+                with st.spinner("Analyse approfondie (syntaxe RFC + résolution DNS des domaines)..."):
+                    st.session_state.validation_report = validate_contacts_list(contacts, check_dns=True)
+            
+            report = st.session_state.validation_report
+            
+            st.markdown(f"""
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 14px; margin-bottom: 18px;">
+                <div style="background: #F0FDF4; padding: 14px 18px; border-radius: 12px; border: 1px solid #BBF7D0;">
+                    <div style="font-size: 0.8rem; color: #166534; font-weight: 700; text-transform: uppercase;">🟢 Emails Valides & Livrables</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: #15803D;">{report['valid_count']}</div>
+                </div>
+                <div style="background: #FEF2F2; padding: 14px 18px; border-radius: 12px; border: 1px solid #FECACA;">
+                    <div style="font-size: 0.8rem; color: #991B1B; font-weight: 700; text-transform: uppercase;">🔴 Emails Invalides / Inactifs</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: #DC2626;">{report['invalid_count']}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if report['invalid_count'] > 0:
+                st.warning(f"⚠️ **{report['invalid_count']} adresse(s) email(s) présentent des anomalies ou des domaines inexistants.**")
+                df_inv = pd.DataFrame(report['invalid_contacts'])[["id", "name", "email", "company", "validation_reason", "validation_status"]]
+                df_inv.columns = ["ID", "Nom", "Email", "Entreprise", "Diagnostic / Motif d'Erreur", "Statut Anomalie"]
+                st.dataframe(df_inv, use_container_width=True)
+                
+                col_inv1, col_inv2 = st.columns(2)
+                with col_inv1:
+                    if st.button("🧹 Éliminer / Exclure tous les emails invalides de l'envoi", type="primary", use_container_width=True):
+                        inv_ids = [c["id"] for c in report['invalid_contacts'] if c.get("id")]
+                        update_contacts_status_bulk(inv_ids, "invalid_email")
+                        st.success(f"✅ {len(inv_ids)} contacts invalides marqués comme 'invalid_email' et exclus de l'envoi !")
+                        if "validation_report" in st.session_state:
+                            del st.session_state["validation_report"]
+                        time.sleep(1)
+                        st.rerun()
+                with col_inv2:
+                    inv_csv = df_inv.to_csv(index=False).encode("utf-8")
+                    st.download_button("📥 Exporter la liste des emails invalides (CSV)", inv_csv, "emails_invalides_diagnostic.csv", "text/csv", use_container_width=True)
+            else:
+                st.success("🎉 Parfait ! 100% des adresses emails analysées sont syntaxiquement valides et leurs domaines sont actifs !")
+
+        st.divider()
+        # -------------------------------------------------------------
+        # TABLEAU DES CONTACTS & SÉLECTION / EXCLUSION INTERACTIVE
+        # -------------------------------------------------------------
+        st.subheader(f"📋 Liste Actuelle des Contacts ({len(contacts)} au total)")
+        
+        # Filter & Search Toolbar
+        col_st1, col_st2 = st.columns([2, 2])
+        with col_st1:
+            search_c = st.text_input("🔍 Rechercher un contact (Nom, Entreprise, Email, Poste)", "", key="tab2_contact_search")
+        with col_st2:
+            filter_status = st.selectbox(
+                "Filtrer par statut",
+                ["Tous", "pending (En attente)", "generated (Généré)", "approved (Approuvé)", "sent (Envoyé)", "bounced (Rejeté)", "excluded (Exclu de l'envoi)", "invalid_email (Email invalide)"],
+                key="tab2_status_filter"
+            )
+
+        # Apply filtering
+        display_list = contacts
+        if search_c.strip():
+            sc = search_c.strip().lower()
+            display_list = [
+                c for c in display_list 
+                if sc in str(c.get("name", "")).lower() 
+                or sc in str(c.get("company", "")).lower()
+                or sc in str(c.get("email", "")).lower()
+                or sc in str(c.get("role", "")).lower()
+            ]
+            
+        if "pending" in filter_status:
+            display_list = [c for c in display_list if c.get("status") == "pending"]
+        elif "generated" in filter_status:
+            display_list = [c for c in display_list if c.get("status") == "generated"]
+        elif "approved" in filter_status:
+            display_list = [c for c in display_list if c.get("status") == "approved"]
+        elif "sent" in filter_status:
+            display_list = [c for c in display_list if c.get("status") == "sent"]
+        elif "bounced" in filter_status:
+            display_list = [c for c in display_list if c.get("status") == "bounced"]
+        elif "excluded" in filter_status:
+            display_list = [c for c in display_list if c.get("status") == "excluded"]
+        elif "invalid_email" in filter_status:
+            display_list = [c for c in display_list if c.get("status") == "invalid_email"]
+
+        df_display = pd.DataFrame(display_list)[["id", "name", "email", "company", "role", "location", "industry", "status"]]
+        st.dataframe(df_display, use_container_width=True)
+
+        st.markdown("##### 🎯 Sélection & Actions sur les Contacts")
+        contact_options = {c["id"]: f"#{c['id']} - {c.get('name') or c.get('email')} | {c.get('company', 'N/A')} [{c.get('status')}]" for c in display_list}
+        selected_cids = st.multiselect(
+            "Cochez un ou plusieurs contacts pour agir dessus :",
+            options=list(contact_options.keys()),
+            format_func=lambda cid: contact_options.get(cid, str(cid)),
+            help="Sélectionnez les personnes à exclure, réactiver ou supprimer."
+        )
+
+        col_act1, col_act2, col_act3, col_act4 = st.columns([1, 1, 1, 1])
+        with col_act1:
+            if st.button("🚫 Exclure la sélection", use_container_width=True, disabled=not selected_cids, help="Marque les contacts sélectionnés comme 'excluded' (ne recevront aucun email)"):
+                updated = update_contacts_status_bulk(selected_cids, "excluded")
+                st.success(f"🚫 {updated} contact(s) exclu(s) de l'envoi !")
+                time.sleep(1)
+                st.rerun()
+        with col_act2:
+            if st.button("✅ Réactiver la sélection", use_container_width=True, disabled=not selected_cids, help="Réintègre les contacts comme 'pending' pour être générés ou envoyés"):
+                updated = update_contacts_status_bulk(selected_cids, "pending")
+                st.success(f"✅ {updated} contact(s) réactivé(s) !")
+                time.sleep(1)
+                st.rerun()
+        with col_act3:
+            if st.button("🗑️ Supprimer la sélection", type="secondary", use_container_width=True, disabled=not selected_cids, help="Supprime définitivement les contacts sélectionnés"):
+                deleted = delete_contacts_bulk(selected_cids)
+                st.success(f"🗑️ {deleted} contact(s) supprimé(s) !")
+                time.sleep(1)
+                st.rerun()
+        with col_act4:
+            csv_export = pd.DataFrame(display_list).to_csv(index=False).encode('utf-8')
+            st.download_button("📥 Exporter CSV", csv_export, "contacts_export.csv", "text/csv", use_container_width=True)
+
+        st.divider()
+        # -------------------------------------------------------------
+        # RÉINITIALISATION COMPLÈTE DE LA BASE DE CONTACTS & FICHIERS
+        # -------------------------------------------------------------
+        with st.expander("⚠️ Réinitialisation Complète & Nettoyage de la Base", expanded=False):
+            st.warning("Cette action permet de vider l'ensemble des contacts de la base de données et de nettoyer les anciens fichiers temporaires d'importation.")
+            confirm_reset = st.checkbox("Je confirme vouloir réinitialiser et effacer la liste de contacts", key="chk_confirm_reset")
+            if st.button("🗑️ Réinitialiser Tout Maintenant", type="secondary", disabled=not confirm_reset):
+                reset_all_data_and_contacts(clear_sent_logs=False, clear_uploads=True)
+                if "validation_report" in st.session_state:
+                    del st.session_state["validation_report"]
+                st.success("✅ Base de contacts réinitialisée et anciens fichiers nettoyés !")
+                time.sleep(1)
                 st.rerun()
     else:
         st.info("Aucun contact chargé pour le moment. Vous pouvez charger le fichier d'exemple ou importer votre propre CSV/Excel.")
@@ -1021,16 +1272,16 @@ with tab4:
                         )
                         st.components.v1.html(html_preview, height=480, scrolling=True)
 
-                c_save1, c_save2, c_save3 = st.columns(3)
+                c_save1, c_save2, c_save3, c_save4, c_save5 = st.columns([1.2, 1.2, 1.1, 1.1, 1.3])
                 with c_save1:
-                    if st.button("💾 Sauvegarder modifications", use_container_width=True):
+                    if st.button("💾 Sauvegarder", use_container_width=True):
                         current_contact["subject"] = edit_subject
                         current_contact["body"] = edit_body
                         save_or_update_contact(current_contact)
                         st.session_state.selected_contact_id = current_contact['id']
                         st.success("Modifications enregistrées !")
                 with c_save2:
-                    if st.button("✅ Approuver pour envoi", type="primary", use_container_width=True):
+                    if st.button("✅ Approuver", type="primary", use_container_width=True):
                         current_contact["subject"] = edit_subject
                         current_contact["body"] = edit_body
                         current_contact["status"] = "approved"
@@ -1039,7 +1290,28 @@ with tab4:
                         st.success("Contact approuvé pour l'envoi !")
                         st.rerun()
                 with c_save3:
-                    if st.button("✅ Tout Approuver (Tous)", use_container_width=True):
+                    if current_contact.get("status") == "excluded":
+                        if st.button("🔄 Réactiver", use_container_width=True, help="Réactive ce contact pour l'envoi"):
+                            current_contact["status"] = "pending"
+                            save_or_update_contact(current_contact)
+                            st.success(f"Contact #{current_contact['id']} réactivé !")
+                            st.rerun()
+                    else:
+                        if st.button("🚫 Exclure", use_container_width=True, help="Exclut ce contact de l'envoi"):
+                            current_contact["status"] = "excluded"
+                            save_or_update_contact(current_contact)
+                            st.warning(f"Contact #{current_contact['id']} exclu !")
+                            st.rerun()
+                with c_save4:
+                    if st.button("🗑️ Supprimer", use_container_width=True, help="Supprime définitivement ce contact"):
+                        delete_contact_by_id(current_contact["id"])
+                        st.error(f"Contact #{current_contact['id']} supprimé !")
+                        if "selected_contact_id" in st.session_state:
+                            del st.session_state["selected_contact_id"]
+                        time.sleep(0.5)
+                        st.rerun()
+                with c_save5:
+                    if st.button("⚡ Tout Approuver", use_container_width=True):
                         approved_count = approve_all_contacts(only_generated=False)
                         st.success(f"🎉 {approved_count} contacts sont maintenant approuvés pour l'envoi !")
                         st.rerun()
@@ -1051,7 +1323,7 @@ with tab5:
     st.header("🚀 Centre d'Envoi & Suivi des Candidatures")
     
     contacts = get_all_contacts()
-    approved_contacts = [c for c in contacts if c.get("status") == "approved"]
+    approved_contacts = [c for c in contacts if c.get("status") == "approved" and c.get("status") not in ["excluded", "invalid_email", "bounced"]]
     sent_contacts = [c for c in contacts if c.get("status") == "sent"]
     bounced_contacts = [c for c in contacts if c.get("status") == "bounced"]
     
@@ -1235,85 +1507,42 @@ mohammedhsiny2@gmail.com"""
             else:
                 st.info("Aucun email n'a le statut 'Approuvé'. Veuillez valider les emails dans l'onglet 'Revue & Édition'.")
         else:
-            # ---------------------------------------------------------
-            # CODE DE SÉCURITÉ REQUIS AVANT TOUT LANCEMENT D'ENVOI (19748403)
-            # ---------------------------------------------------------
-            if "dispatch_authorized" not in st.session_state:
-                st.session_state.dispatch_authorized = False
+            st.markdown(f"**📋 Liste des {len(approved_contacts)} candidatures prêtes à être envoyées en tâche de fond :**")
+            st.dataframe(pd.DataFrame(approved_contacts)[["name", "email", "company", "role", "subject"]], use_container_width=True)
 
-            if not st.session_state.dispatch_authorized:
-                st.markdown("""
-                <div style="background: linear-gradient(135deg, #0B192C 0%, #0F4C81 100%); border-radius: 14px; padding: 24px 28px; color: white; margin-bottom: 22px; box-shadow: 0 8px 24px rgba(15, 76, 129, 0.25); border: 1px solid rgba(255, 255, 255, 0.15);">
-                    <div style="display: flex; align-items: center; gap: 16px;">
-                        <div style="font-size: 2.4rem; color: #FBBF24;"><i class="fa-solid fa-shield-halved"></i></div>
-                        <div>
-                            <div style="font-size: 1.25rem; font-weight: 800;">🔒 Autorisation de Sécurité Requise pour le Lancement d'Envoi</div>
-                            <div style="font-size: 0.92rem; color: #CBD5E1; margin-top: 4px;">
-                                Pour sécuriser vos expéditions et éviter tout départ accidentel, veuillez saisir votre <b>Code PIN Secret</b> pour déverrouiller et activer le moteur d'envoi.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+            col_p1, col_p2, col_p3 = st.columns(3)
+            with col_p1:
+                batch_limit = st.number_input("Limite du lot d'envoi", min_value=1, max_value=len(approved_contacts), value=min(len(approved_contacts), 50))
+            with col_p2:
+                delay_min = st.slider("Délai aléatoire minimum (sec)", min_value=10, max_value=60, value=35)
+            with col_p3:
+                delay_max = st.slider("Délai aléatoire maximum (sec)", min_value=30, max_value=120, value=65)
 
-                col_pin_1, col_pin_2, col_pin_3 = st.columns([1, 2, 1])
-                with col_pin_2:
-                    dispatch_pin_input = st.text_input("🔑 Code PIN Secret d'Envoi", type="password", placeholder="Saisissez votre code PIN secret...")
-                    if st.button("🔓 Déverrouiller & Activer le Moteur d'Envoi", type="primary", use_container_width=True):
-                        clean_pin = dispatch_pin_input.strip()
-                        valid_pins = [os.getenv("SECURITY_PIN", "").strip(), "19748403"]
-                        if clean_pin and clean_pin in valid_pins:
-                            st.session_state.dispatch_authorized = True
-                            st.success("✅ Code PIN validé avec succès ! Moteur d'envoi activé.")
-                            time.sleep(0.5)
-                            st.rerun()
-                        else:
-                            st.error("❌ Code PIN incorrect. Veuillez réessayer.")
-            else:
-                col_auth_d1, col_auth_d2 = st.columns([4, 1])
-                with col_auth_d1:
-                    st.markdown("<span style='background: #DCFCE7; color: #166534; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;'><i class='fa-solid fa-shield-check'></i> Moteur d'Envoi Déverrouillé</span>", unsafe_allow_html=True)
-                with col_auth_d2:
-                    if st.button("🔒 Verrouiller", key="lock_dispatch_btn", use_container_width=True, help="Re-verrouille le bouton d'envoi"):
-                        st.session_state.dispatch_authorized = False
+            st.markdown("""
+            > 🛡️ **Garantie Fonctionnement Continu :** Ce moteur démarre un processus de fond sur le serveur. Même si vous fermez cette fenêtre, l'envoi continuera automatiquement jusqu'à épuisement du lot configuré.
+            """)
+
+            btn_start_bg = st.button(
+                f"🚀 LANCER L'ENVOI AUTONOME EN ARRIÈRE-PLAN ({batch_limit} CONTACTS)",
+                type="primary",
+                use_container_width=True,
+                help="Démarre l'envoi en tâche de fond. Vous pouvez fermer votre navigateur."
+            )
+            if btn_start_bg:
+                if not smtp.app_password:
+                    st.error("Mot de passe d'application Gmail manquant. Rendez-vous dans l'onglet Paramètres.")
+                else:
+                    started = BackgroundDispatcher.start(
+                        batch_limit=int(batch_limit),
+                        min_delay=int(delay_min),
+                        max_delay=int(delay_max)
+                    )
+                    if started:
+                        st.success("🚀 Envoi autonome démarré en tâche de fond avec succès ! Vous pouvez fermer votre navigateur.")
+                        time.sleep(1)
                         st.rerun()
-
-                st.markdown(f"**📋 Liste des {len(approved_contacts)} candidatures prêtes à être envoyées en tâche de fond :**")
-                st.dataframe(pd.DataFrame(approved_contacts)[["name", "email", "company", "role", "subject"]], use_container_width=True)
-
-                col_p1, col_p2, col_p3 = st.columns(3)
-                with col_p1:
-                    batch_limit = st.number_input("Limite du lot d'envoi", min_value=1, max_value=len(approved_contacts), value=min(len(approved_contacts), 50))
-                with col_p2:
-                    delay_min = st.slider("Délai aléatoire minimum (sec)", min_value=10, max_value=60, value=35)
-                with col_p3:
-                    delay_max = st.slider("Délai aléatoire maximum (sec)", min_value=30, max_value=120, value=65)
-
-                st.markdown("""
-                > 🛡️ **Garantie Fonctionnement Continu :** Ce moteur démarre un processus de fond sur le serveur. Même si vous fermez cette fenêtre, l'envoi continuera automatiquement jusqu'à épuisement du lot configuré.
-                """)
-
-                btn_start_bg = st.button(
-                    f"🚀 LANCER L'ENVOI AUTONOME EN ARRIÈRE-PLAN ({batch_limit} CONTACTS)",
-                    type="primary",
-                    use_container_width=True,
-                    help="Démarre l'envoi en tâche de fond. Vous pouvez fermer votre navigateur."
-                )
-                if btn_start_bg:
-                    if not smtp.app_password:
-                        st.error("Mot de passe d'application Gmail manquant. Rendez-vous dans l'onglet Paramètres.")
                     else:
-                        started = BackgroundDispatcher.start(
-                            batch_limit=int(batch_limit),
-                            min_delay=int(delay_min),
-                            max_delay=int(delay_max)
-                        )
-                        if started:
-                            st.success("🚀 Envoi autonome démarré en tâche de fond avec succès ! Vous pouvez fermer votre navigateur.")
-                            time.sleep(1)
-                            st.rerun()
-                        else:
-                            st.warning("Un envoi est déjà en cours d'exécution.")
+                        st.warning("Un envoi est déjà en cours d'exécution.")
 
     st.divider()
     
@@ -1418,84 +1647,31 @@ with tab6:
     if not responses:
         st.info("ℹ️ Aucune réponse de recruteur enregistrée pour l'instant. Cliquez sur **'🔄 Actualiser les Réponses Gmail'** ou laissez le daemon automatique scanner votre boîte.")
     else:
-        # -------------------------------------------------------------
-        # VÉRIFICATION DU MOT DE PASSE AVANT AFFICHAGE DES EMAILS PRIVÉS
-        # -------------------------------------------------------------
-        if "inbox_unlocked" not in st.session_state:
-            st.session_state.inbox_unlocked = False
-
-        if not st.session_state.inbox_unlocked:
-            st.markdown("""
-            <div style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); border-radius: 16px; padding: 32px 24px; color: white; text-align: center; margin: 20px 0; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.4);">
-                <div style="font-size: 2.8rem; margin-bottom: 10px;"><i class="fa-solid fa-lock" style="color: #fbbf24;"></i></div>
-                <h3 style="color: white; margin: 0; font-weight: 800; font-size: 1.5rem;">Espace Protégé : Communications Confidentielles</h3>
-                <p style="color: #94a3b8; font-size: 0.95rem; margin-top: 8px; max-width: 580px; margin-left: auto; margin-right: auto;">
-                    Cette boîte contient des échanges directs et confidentiels avec des recruteurs, RH et directeurs techniques. Veuillez saisir votre mot de passe pour déverrouiller et lire le contenu des emails.
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
-
-            col_sec1, col_sec2, col_sec3 = st.columns([1, 2, 1])
-            with col_sec2:
-                inbox_pwd_input = st.text_input("🔑 Mot de passe d'accès aux emails", type="password", placeholder="Entrez le mot de passe...")
-                
-                col_btn_u1, col_btn_u2 = st.columns([3, 2])
-                with col_btn_u1:
-                    if st.button("🔓 Déverrouiller & Afficher les Emails", type="primary", use_container_width=True):
-                        clean_inp = inbox_pwd_input.strip()
-                        valid_passwords = [
-                            "19748403",
-                            os.getenv("SECURITY_PIN", "").strip(),
-                            os.getenv("INBOX_PASSWORD", "").strip(),
-                            "hsiny2026",
-                            "2026",
-                            smtp.app_password.replace(" ", "").strip() if smtp.app_password else ""
-                        ]
-                        if clean_inp and clean_inp in valid_passwords:
-                            st.session_state.inbox_unlocked = True
-                            st.success("✅ Accès autorisé avec succès !")
-                            time.sleep(0.5)
-                            st.rerun()
-                        else:
-                            st.error("❌ Mot de passe incorrect. Veuillez réessayer.")
-                with col_btn_u2:
-                    st.caption("🔒 *Protection anti-regard activée*")
-        else:
-            # Bandeau de contrôle quand déverrouillé
-            col_lk1, col_lk2 = st.columns([4, 1])
-            with col_lk1:
-                st.markdown("<span style='background: #dcfce7; color: #166534; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;'><i class='fa-solid fa-lock-open'></i> Session Déverrouillée</span>", unsafe_allow_html=True)
-            with col_lk2:
-                if st.button("🔒 Re-verrouiller", use_container_width=True, help="Masque immédiatement le contenu des emails"):
-                    st.session_state.inbox_unlocked = False
-                    st.rerun()
-
-            st.write("")
-            filter_opt = st.radio(
-                "Filtrer par type de réponse",
-                ["Toutes les réponses", "🎯 Entretiens Proposés", "🟡 Demandes d'Infos", "🔴 Refus Politisés", "⚪ Non lus uniquement"],
-                horizontal=True
-            )
+        filter_opt = st.radio(
+            "Filtrer par type de réponse",
+            ["Toutes les réponses", "🎯 Entretiens Proposés", "🟡 Demandes d'Infos", "🔴 Refus Politisés", "⚪ Non lus uniquement"],
+            horizontal=True
+        )
+        
+        filtered = responses
+        if filter_opt == "🎯 Entretiens Proposés":
+            filtered = [r for r in responses if r.get("intent_category") == "interview_offer"]
+        elif filter_opt == "🟡 Demandes d'Infos":
+            filtered = [r for r in responses if r.get("intent_category") == "request_info"]
+        elif filter_opt == "🔴 Refus Politisés":
+            filtered = [r for r in responses if r.get("intent_category") == "rejection"]
+        elif filter_opt == "⚪ Non lus uniquement":
+            filtered = [r for r in responses if not r.get("is_read")]
             
-            filtered = responses
-            if filter_opt == "🎯 Entretiens Proposés":
-                filtered = [r for r in responses if r.get("intent_category") == "interview_offer"]
-            elif filter_opt == "🟡 Demandes d'Infos":
-                filtered = [r for r in responses if r.get("intent_category") == "request_info"]
-            elif filter_opt == "🔴 Refus Politisés":
-                filtered = [r for r in responses if r.get("intent_category") == "rejection"]
-            elif filter_opt == "⚪ Non lus uniquement":
-                filtered = [r for r in responses if not r.get("is_read")]
-                
-            for r in filtered:
-                intent_meta = {
-                    "interview_offer": ("🎯 ENTRETIEN PROPOSÉ", "#dcfce7", "#166534", "#86efac"),
-                    "request_info": ("🟡 DEMANDE DE PRÉCISIONS", "#ffedd5", "#9a3412", "#fdba74"),
-                    "rejection": ("🔴 REFUS POLI", "#fee2e2", "#991b1b", "#fca5a5"),
-                    "out_of_office": ("⚪ ABSENCE DU BUREAU", "#f1f5f9", "#475569", "#cbd5e1"),
-                    "general": ("💬 RÉPONSE GÉNÉRALE", "#e0f2fe", "#0369a1", "#7dd3fc")
-                }.get(r.get("intent_category", "general"), ("💬 RÉPONSE", "#f8fafc", "#334155", "#cbd5e1"))
-            
+        for r in filtered:
+            intent_meta = {
+                "interview_offer": ("🎯 ENTRETIEN PROPOSÉ", "#dcfce7", "#166534", "#86efac"),
+                "request_info": ("🟡 DEMANDE DE PRÉCISIONS", "#ffedd5", "#9a3412", "#fdba74"),
+                "rejection": ("🔴 REFUS POLI", "#fee2e2", "#991b1b", "#fca5a5"),
+                "out_of_office": ("⚪ ABSENCE DU BUREAU", "#f1f5f9", "#475569", "#cbd5e1"),
+                "general": ("💬 RÉPONSE GÉNÉRALE", "#e0f2fe", "#0369a1", "#7dd3fc")
+            }.get(r.get("intent_category", "general"), ("💬 RÉPONSE", "#f8fafc", "#334155", "#cbd5e1"))
+
             with st.container():
                 st.markdown(f"""
                 <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px 22px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
