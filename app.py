@@ -860,6 +860,18 @@ with tab2:
         </div>
         """, unsafe_allow_html=True)
 
+        gen_cnt_tab2 = len([c for c in contacts if c.get("status") == "generated"])
+        if gen_cnt_tab2 > 0:
+            col_tap1, col_tap2 = st.columns([3, 1])
+            with col_tap1:
+                st.info(f"🟡 **{gen_cnt_tab2} contacts ont des emails générés en attente de validation.**")
+            with col_tap2:
+                if st.button(f"⚡ Tout Approuver ({gen_cnt_tab2})", type="primary", use_container_width=True, key="btn_app_all_tab2"):
+                    cnt_app = approve_all_contacts(only_generated=True)
+                    st.success(f"🎉 {cnt_app} contacts validés pour l'envoi !")
+                    time.sleep(0.8)
+                    st.rerun()
+
         col_rst1, col_rst2, col_rst3, col_rst4 = st.columns([1.2, 1.2, 1.2, 1.2])
         with col_rst1:
             if st.button("🔄 Relancer Tout (Reset -> Attente)", use_container_width=True, help="Remet tous les contacts en attente ('pending') pour relancer un cycle d'envoi complet"):
@@ -1259,6 +1271,21 @@ with tab4:
     if not contacts:
         st.info("Aucun contact disponible. Veuillez importer des contacts dans l'onglet 'Contacts'.")
     else:
+        # Global Quick Approval Banner
+        gen_count = len([c for c in contacts if c.get("status") == "generated"])
+        app_count = len([c for c in contacts if c.get("status") == "approved"])
+        
+        col_hdr1, col_hdr2 = st.columns([3, 2])
+        with col_hdr1:
+            st.info(f"📊 **Statut Global :** **{app_count}** approuvés (prêts pour l'envoi), **{gen_count}** générés par l'IA en attente de validation sur **{len(contacts)}** contacts.")
+        with col_hdr2:
+            if gen_count > 0:
+                if st.button(f"⚡ Tout Approuver d'un coup ({gen_count} contacts)", type="primary", use_container_width=True, key="btn_quick_approve_all_tab4"):
+                    cnt_app = approve_all_contacts(only_generated=True)
+                    st.success(f"🎉 Les {cnt_app} contacts générés sont validés et prêts dans l'onglet '🚀 Centre d'Envoi' !")
+                    time.sleep(0.8)
+                    st.rerun()
+
         # Search and Filter Toolbar
         col_flt1, col_flt2 = st.columns([3, 2])
         with col_flt1:
@@ -1990,10 +2017,19 @@ mohammedhsiny2@gmail.com"""
                 st.rerun()
     else:
         if not approved_contacts:
-            if len(sent_contacts) > 0:
+            gen_count = len([c for c in contacts if c.get("status") == "generated"])
+            if gen_count > 0:
+                st.warning(f"🟡 **{gen_count} contacts ont été générés par le Studio IA mais sont en attente d'approbation.**")
+                st.markdown("💡 Vous n'avez pas besoin de les valider un par un ! Cliquez simplement ci-dessous pour les approuver tous et déverrouiller l'envoi immédiat :")
+                if st.button(f"⚡ TOUT APPROUVER EN 1 CLIC ({gen_count} CONTACTS)", type="primary", use_container_width=True, key="btn_app_all_from_tab5"):
+                    cnt_app = approve_all_contacts(only_generated=True)
+                    st.success(f"🎉 {cnt_app} contacts approuvés ! Chargement de la file d'envoi...")
+                    time.sleep(0.8)
+                    st.rerun()
+            elif len(sent_contacts) > 0:
                 st.success(f"🎉 Félicitations ! Tous vos contacts ont déjà reçu leur candidature ({len(sent_contacts)} envoyés au total).")
             else:
-                st.info("Aucun email n'a le statut 'Approuvé'. Veuillez valider les emails dans l'onglet 'Revue & Édition'.")
+                st.info("Aucun email n'a le statut 'Approuvé'. Veuillez d'abord importer des contacts et lancer la génération dans '🤖 Studio IA'.")
         else:
             # -------------------------------------------------------------
             # MODULE DIRECT D'ÉLIMINATION / EXCLUSION PAR ENTREPRISE
