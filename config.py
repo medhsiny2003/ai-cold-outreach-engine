@@ -125,7 +125,7 @@ class LLMSettings(BaseModel):
     model_config = ConfigDict(extra="allow", validate_assignment=False, arbitrary_types_allowed=True)
     provider: str = "gemini"  # gemini, openai, groq, deepseek, ollama, openrouter
     api_key: str = Field(default_factory=lambda: os.getenv("GEMINI_API_KEY", ""))
-    model_name: str = "gemini-2.0-flash"
+    model_name: str = "gemini-3.5-flash"
     temperature: float = 0.6
     api_base_url: Optional[str] = None
 

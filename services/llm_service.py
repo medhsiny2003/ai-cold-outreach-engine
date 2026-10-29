@@ -64,33 +64,43 @@ def clean_json_response(raw_text: str) -> Dict[str, Any]:
             raise ValueError(f"Could not parse LLM JSON output: {e}\nRaw: {raw_text[:200]}")
 
 async def call_gemini_api(api_key: str, model_name: str, system_prompt: str, user_prompt: str, temperature: float = 0.6) -> str:
-    """Call Google Gemini REST API."""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
-    
-    payload = {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [{"text": f"{system_prompt}\n\n{user_prompt}"}]
-            }
-        ],
-        "generationConfig": {
-            "temperature": temperature,
-            "responseMimeType": "application/json"
-        }
-    }
-    
-    async with httpx.AsyncClient(timeout=45.0) as client:
-        response = await client.post(url, json=payload)
-        if response.status_code != 200:
-            error_data = response.text
-            raise RuntimeError(f"Gemini API error ({response.status_code}): {error_data}")
+    """Call Google Gemini REST API with auto-fallback for deprecated model names."""
+    models_to_try = [model_name or "gemini-3.5-flash"]
+    for fallback in ["gemini-3.5-flash", "gemini-3.5-flash-lite"]:
+        if fallback not in models_to_try:
+            models_to_try.append(fallback)
             
-        data = response.json()
-        try:
-            return data["candidates"][0]["content"]["parts"][0]["text"]
-        except (KeyError, IndexError) as e:
-            raise RuntimeError(f"Unexpected Gemini response structure: {data}")
+    last_error = None
+    async with httpx.AsyncClient(timeout=45.0) as client:
+        for current_model in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent?key={api_key}"
+            payload = {
+                "contents": [
+                    {
+                        "role": "user",
+                        "parts": [{"text": f"{system_prompt}\n\n{user_prompt}"}]
+                    }
+                ],
+                "generationConfig": {
+                    "temperature": temperature,
+                    "responseMimeType": "application/json"
+                }
+            }
+            try:
+                response = await client.post(url, json=payload)
+                if response.status_code == 200:
+                    data = response.json()
+                    return data["candidates"][0]["content"]["parts"][0]["text"]
+                elif response.status_code in [404, 429, 500, 502, 503, 504]:
+                    last_error = f"Gemini model '{current_model}' returned {response.status_code}."
+                    continue
+                else:
+                    raise RuntimeError(f"Gemini API error ({response.status_code}): {response.text}")
+            except httpx.RequestError as e:
+                last_error = f"Gemini network error on '{current_model}': {e}"
+                continue
+                
+    raise RuntimeError(f"All Gemini models failed. Last error: {last_error}")
 
 async def call_openai_compatible_api(
     base_url: str,
@@ -366,7 +376,7 @@ async def generate_email_for_contact(
         if settings.provider == "gemini":
             raw_text = await call_gemini_api(
                 api_key=settings.api_key,
-                model_name=settings.model_name or "gemini-2.0-flash",
+                model_name=settings.model_name or "gemini-3.5-flash",
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 temperature=settings.temperature
@@ -544,7 +554,7 @@ async def generate_email_from_template(
         if settings.provider == "gemini":
             raw_text = await call_gemini_api(
                 api_key=settings.api_key,
-                model_name=settings.model_name or "gemini-2.0-flash",
+                model_name=settings.model_name or "gemini-3.5-flash",
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 temperature=settings.temperature

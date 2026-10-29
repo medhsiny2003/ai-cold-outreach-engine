@@ -32,7 +32,7 @@ try:
         get_all_recruiter_responses, mark_response_read, trigger_waterfall_retry_bounced,
         delete_contact_by_id, delete_contacts_bulk, update_contacts_status_bulk, reset_all_data_and_contacts,
         delete_contacts_by_status, reset_all_contacts_to_pending, reset_sent_and_bounced_to_pending, clear_sent_logs_history,
-        get_unique_companies_summary, exclude_contacts_by_companies, reinclude_contacts_by_companies, delete_contacts_by_companies
+        get_unique_companies_summary, exclude_contacts_by_companies, reinclude_contacts_by_companies, delete_contacts_by_companies, save_document_blob, restore_documents_from_db
     )
 except ImportError:
     from services.storage_service import (
@@ -166,6 +166,10 @@ except ImportError:
 
 # Initialize DB schema & Start Background Auto-Sync Daemon (45s non-blocking loop)
 init_db()
+try:
+    restore_documents_from_db()
+except Exception:
+    pass
 BackgroundSyncDaemon.start(interval_seconds=45)
 
 # -------------------------------------------------------------
@@ -418,7 +422,7 @@ with st.sidebar:
         st.image("https://img.icons8.com/fluency/96/artificial-intelligence.png", width=64)
         
     st.markdown(f"### <i class='fa-solid fa-user-tie' style='color:#0F4C81;'></i> **{profile.name}**", unsafe_allow_html=True)
-    st.caption("🏆 **Président Club RoboThings** | FSTM")
+    st.caption("⚡ **Final-Year Electrical Engineering Student** | FSTM")
     st.caption(f"🎓 {profile.title_fr}")
     
     is_connected = bool(smtp.app_password and smtp.app_password.strip())
@@ -552,10 +556,11 @@ kpi_html = f"""
 st.markdown(kpi_html, unsafe_allow_html=True)
 
 # Navigation Tabs with Icons
-tab1, tab2, tab3, tab4, tab_manual, tab5, tab6, tab7 = st.tabs([
+tab1, tab2, tab3, tab_copilot, tab4, tab_manual, tab5, tab6, tab7 = st.tabs([
     "👤 Mon Profil & CV",
     "👥 Contacts & Import",
     "🤖 Studio IA",
+    "💬 Copilote IA (Discussion)",
     "✍️ Revue & Édition",
     "✉️ Envoi Manuel Direct",
     "🚀 Centre d'Envoi",
@@ -630,6 +635,12 @@ with tab1:
             fr_hash = hash(fr_bytes)
             if st.session_state.get("_uploaded_cv_fr_hash") != fr_hash:
                 cv_fr_file.write_bytes(fr_bytes)
+                try:
+                    (UPLOADS_DIR / "mohammed_hsiny_cv_fr.pdf").write_bytes(fr_bytes)
+                except Exception:
+                    pass
+                save_document_blob("CV_Mohammed_HSINY_FR.pdf", fr_bytes)
+                save_document_blob("mohammed_hsiny_cv_fr.pdf", fr_bytes)
                 st.session_state["_uploaded_cv_fr_hash"] = fr_hash
                 try:
                     profile.cv_fr_path = str(cv_fr_file)
@@ -637,7 +648,8 @@ with tab1:
                     pass
                 save_profile(profile)
                 st.session_state.profile = profile
-                st.toast("🎉 CV Français mis à jour et sauvegardé !", icon="✅")
+                st.toast("🎉 CV Français mis à jour et sauvegardé définitivement !", icon="✅")
+                time.sleep(0.5)
                 st.rerun()
 
     with col_cv2:
@@ -662,6 +674,7 @@ with tab1:
             en_hash = hash(en_bytes)
             if st.session_state.get("_uploaded_cv_en_hash") != en_hash:
                 cv_en_file.write_bytes(en_bytes)
+                save_document_blob("CV_Mohammed_HSINY_EN.pdf", en_bytes)
                 st.session_state["_uploaded_cv_en_hash"] = en_hash
                 try:
                     profile.cv_en_path = str(cv_en_file)
@@ -669,7 +682,8 @@ with tab1:
                     pass
                 save_profile(profile)
                 st.session_state.profile = profile
-                st.toast("🎉 CV Anglais mis à jour et sauvegardé !", icon="✅")
+                st.toast("🎉 CV Anglais mis à jour et sauvegardé définitivement !", icon="✅")
+                time.sleep(0.5)
                 st.rerun()
 
     with col_cv3:
@@ -1259,6 +1273,126 @@ Mohammed HSINY
                 status_box.success(f"🎉 Génération personnalisée terminée pour {len(targets)} contacts ! Rendez-vous dans l'onglet 'Revue & Édition' pour vérifier et valider.")
                 time.sleep(1.5)
                 st.rerun()
+
+# -------------------------------------------------------------
+# TAB COPILOT: Copilote IA Interactif (Discussion & Co-Rédaction)
+# -------------------------------------------------------------
+with tab_copilot:
+    st.header("💬 Copilote IA : Votre Binôme de Rédaction & Stratégie Outreach")
+    st.caption("Discutez en direct avec votre IA. Demandez-lui d'analyser une entreprise, de vous expliquer pourquoi elle formule une phrase, de proposer des objets originaux ou de co-rédiger un email parfaitement fluide.")
+
+    contacts_list_for_copilot = get_all_contacts()
+
+    col_cp1, col_cp2 = st.columns([1.8, 1.2])
+    with col_cp1:
+        st.markdown("##### 🎯 Cible ou Sujet de Discussion")
+        c_opts = ["(Aucun contact particulier - Discussion générale)"]
+        for c in contacts_list_for_copilot:
+            c_opts.append(f"#{c.get('id')} - {c.get('name') or c.get('email')} ({c.get('company', 'Entreprise')})")
+        
+        selected_c_opt = st.selectbox("Sélectionner un contact à analyser (optionnel) :", c_opts, key="copilot_selected_contact")
+        
+        target_contact_info = ""
+        if selected_c_opt != c_opts[0]:
+            try:
+                cid = int(selected_c_opt.split(" - ")[0].replace("#", ""))
+                matched_c = next((c for c in contacts_list_for_copilot if c.get("id") == cid), None)
+                if matched_c:
+                    target_contact_info = f"Destinataire : {matched_c.get('name', 'N/A')}, Poste : {matched_c.get('role', 'N/A')}, Société : {matched_c.get('company', 'N/A')}, Email : {matched_c.get('email', '')}"
+                    st.info(f"📌 **Contexte injecté :** {target_contact_info}")
+            except Exception:
+                pass
+
+    with col_cp2:
+        st.markdown("##### ⚡ Suggestions Rapides en 1 Clic")
+        col_sug1, col_sug2 = st.columns(2)
+        with col_sug1:
+            if st.button("💡 5 Idées d'Objets", use_container_width=True, key="btn_sug_obj"):
+                st.session_state.copilot_pending_prompt = f"Propose-moi 5 idées d'objets d'email très variés, naturels et accrocheurs (sans formules robotiques) pour ma candidature PFE. {target_contact_info}"
+        with col_sug2:
+            if st.button("🏢 Analyser Société", use_container_width=True, key="btn_sug_ana"):
+                st.session_state.copilot_pending_prompt = f"Analyse cette entreprise et dis-moi quels défis techniques ils rencontrent et quel projet de mon portfolio (drone inspection HT, robot SkyPharma, bras 6-DOF, multi-robots ADAS) je dois mettre en avant : {target_contact_info or 'Shark Robotics'}"
+        
+        col_sug3, col_sug4 = st.columns(2)
+        with col_sug3:
+            if st.button("✍️ Rédiger & Expliquer", use_container_width=True, key="btn_sug_red"):
+                st.session_state.copilot_pending_prompt = f"Rédige un email ultra fluide et percutant, et explique-moi en 3 points pourquoi tu as structuré le message de cette façon. {target_contact_info}"
+        with col_sug4:
+            if st.button("🔄 Effacer Historique", use_container_width=True, key="btn_sug_clr"):
+                st.session_state.copilot_messages = []
+                st.rerun()
+
+    st.divider()
+
+    # Chat Messages History
+    if "copilot_messages" not in st.session_state:
+        st.session_state.copilot_messages = [
+            {
+                "role": "assistant",
+                "content": f"Bonjour Mohammed ! ⚡ Je suis ton Copilote IA pour ta recherche de stage PFE (Final-Year Electrical Engineering Student à la FSTM).\n\nJe connais par cœur tes projets majeurs (Drone Inspection HT avec YOLO, robot cartésien SkyPharma, bras 6-DOF STM32, flotte ADAS FreeRTOS, automatisme OCP).\n\nDis-moi sur quelle entreprise tu veux travailler aujourd'hui, ou clique sur l'une des suggestions en haut !"
+            }
+        ]
+
+    for msg in st.session_state.copilot_messages:
+        with st.chat_message(msg["role"], avatar="🤖" if msg["role"] == "assistant" else "👤"):
+            st.markdown(msg["content"])
+
+    # Chat Input
+    user_chat_input = st.chat_input("Discutez avec votre Copilote IA (ex: 'Rends le texte plus court', 'Que penses-tu de cet objet ?')...")
+    
+    # Handle pending prompt from one-click buttons
+    if st.session_state.get("copilot_pending_prompt"):
+        user_chat_input = st.session_state.pop("copilot_pending_prompt")
+
+    if user_chat_input:
+        st.session_state.copilot_messages.append({"role": "user", "content": user_chat_input})
+        with st.chat_message("user", avatar="👤"):
+            st.markdown(user_chat_input)
+
+        with st.chat_message("assistant", avatar="🤖"):
+            with st.spinner("Réflexion et rédaction en cours..."):
+                copilot_system_prompt = f"""Tu es le Copilote IA personnel de Mohammed HSINY, un mentor d'élite en cold outreach et ingénierie.
+Mohammed est élève-ingénieur en dernière année en Génie Électrique & Contrôle Industriel (Final-Year Electrical Engineering Student à la FST Mohammedia).
+Il recherche un stage de fin d'études (PFE) de 6 mois à partir de Janvier 2027.
+Portfolio : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
+
+Projets phares de Mohammed :
+1. Drone Quadricoptère d'Inspection HT (ArduPilot, vision IA YOLO, détection d'anomalies en temps réel).
+2. SkyPharma (Robot Cartésien H-Bot, contrôle commande temps réel, interface Python/SQLite).
+3. Bras Manipulateur 6 DOF (SolidWorks, cinématique inverse, asservissement STM32).
+4. Flotte Multi-Robots Mobiles ADAS (FreeRTOS, communication maillée ESP-NOW, asservissement PID).
+5. Automatisme & SCADA OCP (Schneider M580, Ignition, Sepam 80).
+
+TON COMPORTEMENT DANS LE CHAT :
+- Tu es direct, chaleureux, ultra compétent, fluide et constructif.
+- Quand Mohammed te demande un email, tu lui donnes :
+  1. Un OBJET percutant et naturel (pas de formulation robotique).
+  2. Le CORPS du message, aéré, dynamique et sincère.
+  3. Une brève explication pédagogique des choix d'arguments retenus.
+- Si Mohammed te demande des conseils ou des modifications, adapte immédiatement le style.
+"""
+                chat_history_text = ""
+                for m in st.session_state.copilot_messages[-6:]:
+                    chat_history_text += f"\n[{m['role'].upper()}] : {m['content']}\n"
+
+                async def run_copilot_turn():
+                    from services.llm_service import call_gemini_api
+                    return await call_gemini_api(
+                        api_key=llm.api_key,
+                        model_name=llm.model_name or "gemini-3.5-flash",
+                        system_prompt=copilot_system_prompt,
+                        user_prompt=f"HISTORIQUE DE LA CONVERSATION :\n{chat_history_text}\n\nNOUVELLE DEMANDE DE MOHAMMED :\n{user_chat_input}",
+                        temperature=0.7
+                    )
+
+                try:
+                    import asyncio
+                    reply_text = asyncio.run(run_copilot_turn())
+                except Exception as e:
+                    reply_text = f"Désolé Mohammed, une erreur s'est produite lors de la connexion à l'IA : {e}"
+
+                st.markdown(reply_text)
+                st.session_state.copilot_messages.append({"role": "assistant", "content": reply_text})
 
 # -------------------------------------------------------------
 # TAB 4: Revue & Édition (Human-in-the-Loop)

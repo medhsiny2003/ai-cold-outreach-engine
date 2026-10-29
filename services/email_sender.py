@@ -136,18 +136,16 @@ def build_professional_html(
     
     # Localized texts for signature
     if is_english:
-        title_text = "Electrical Engineering & Industrial Control Student"
+        title_text = "Final-Year Electrical Engineering Student"
         school_text = "Faculty of Sciences and Technologies Mohammedia (FSTM)"
-        club_title = "President & Team Leader — RoboThings Club (FSTM)"
         phone_label = "Phone"
         email_label = "Email"
         portfolio_label = "Online Portfolio"
         linkedin_label = "LinkedIn"
         attachment_notice = "📎 Resume (PDF) & Portfolio Dossier (PDF) attached"
     else:
-        title_text = "Élève-Ingénieur en Génie Électrique & Contrôle Industriel"
+        title_text = "Élève-Ingénieur en Génie Électrique (Dernière Année)"
         school_text = "Faculté des Sciences et Techniques de Mohammedia (FSTM)"
-        club_title = "Président & Team Leader — Club RoboThings (FSTM)"
         phone_label = "Tél"
         email_label = "Email"
         portfolio_label = "Portfolio en ligne"
@@ -193,13 +191,10 @@ def build_professional_html(
                                 <div style="font-size: 16px; font-weight: 700; color: #0f172a; letter-spacing: -0.2px;">
                                     {profile.name}
                                 </div>
-                                <div style="font-size: 13px; font-weight: 600; color: #0284c7; margin-top: 2px;">
+                                <div style="font-size: 13.5px; font-weight: 600; color: #0284c7; margin-top: 2px;">
                                     {title_text}
                                 </div>
-                                <div style="font-size: 12px; color: #334155; margin-top: 2px; font-weight: 500;">
-                                    🏆 <strong>{club_title}</strong>
-                                </div>
-                                <div style="font-size: 11.5px; color: #64748b; margin-top: 1px;">
+                                <div style="font-size: 12px; color: #64748b; margin-top: 1px;">
                                     {school_text}
                                 </div>
                                 

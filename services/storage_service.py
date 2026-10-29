@@ -106,6 +106,15 @@ def init_db():
             )
         """)
         
+                # App documents table for permanent CV & Portfolio durability
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS app_documents (
+                doc_name TEXT PRIMARY KEY,
+                file_bytes BLOB NOT NULL,
+                updated_at REAL NOT NULL
+            )
+        """)
+        
         # Ensure default profile, SMTP, and LLM rows exist on first run
         row_p = cursor.execute("SELECT id FROM candidate_profile WHERE id = 1").fetchone()
         if not row_p:
@@ -644,3 +653,27 @@ def delete_contacts_by_companies(company_names: List[str]) -> int:
 
 
 
+
+
+def save_document_blob(doc_name: str, file_bytes: bytes):
+    """Saves a binary file to SQLite app_documents table for permanent cross-session storage."""
+    with get_db_connection() as conn:
+        conn.execute("""
+            INSERT INTO app_documents (doc_name, file_bytes, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(doc_name) DO UPDATE SET
+                file_bytes = excluded.file_bytes,
+                updated_at = excluded.updated_at
+        """, (doc_name, file_bytes, time.time()))
+        conn.commit()
+
+def restore_documents_from_db():
+    """Restores any missing or empty files in UPLOADS_DIR from SQLite app_documents."""
+    from config import UPLOADS_DIR
+    UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+    with get_db_connection() as conn:
+        rows = conn.execute("SELECT doc_name, file_bytes FROM app_documents").fetchall()
+        for row in rows:
+            target_path = UPLOADS_DIR / row["doc_name"]
+            if not target_path.is_file() or target_path.stat().st_size == 0:
+                target_path.write_bytes(row["file_bytes"])
