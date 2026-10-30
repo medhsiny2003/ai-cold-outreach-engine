@@ -219,14 +219,14 @@ def generate_fallback_template(
         
         # 1. VERSION CEO / FONDATEUR / DIRIGEANT
         if is_ceo:
-            subject = f"Votre vision chez {company} – Étudiant passionné par {th_short_fr}"
+            subject = f"Candidature Stage PFE – {company} – Mohammed HSINY"
             body = f"""{salutation}
 
 J'espère que vous allez bien.
 
 Je suis étudiant en dernière année d'ingénierie en Génie Électrique, passionné par {th_tag_fr}. Je suis basé au Maroc et je prépare actuellement mon stage de fin d'études (PFE).
 
-Je suis très motivé par l'idée de rejoindre {company} et je suis sincèrement inspiré par votre vision et les projets que vous portez. Votre parcours et votre expertise dans le domaine sont pour moi une source de motivation.
+Je suis très motivé par l'idée de rejoindre {company} et je suis sincèrement intéressé par vos projets innovants. L'expertise technique développée au sein de vos équipes représente pour moi un environnement idéal pour mon PFE.
 
 Je me permets de vous contacter pour bénéficier de votre regard sur mon CV et mon portfolio. Si vous avez un moment, je serais très reconnaissant d'avoir votre avis pour m'aider à progresser.
 
@@ -240,7 +240,7 @@ Bien cordialement,"""
 
         # 2. VERSION RH / RECRUTEUR / TALENT ACQUISITION
         elif is_hr:
-            subject = f"Candidature – Stage PFE en {th_hr_fr}"
+            subject = f"Candidature Stage PFE – {company} – Mohammed HSINY"
             body = f"""{salutation}
 
 J'espère que vous allez bien.
@@ -261,14 +261,14 @@ Bien cordialement,"""
 
         # 3. VERSION INGÉNIEUR / CHEF DE PROJET / TECH LEAD / R&D (Défaut)
         else:
-            subject = f"Votre parcours chez {company} – Étudiant passionné par {th_short_fr}"
+            subject = f"Candidature PFE Ingénieur – {company} – Mohammed HSINY"
             body = f"""{salutation}
 
 J'espère que vous allez bien.
 
 Je suis étudiant en dernière année d'ingénierie en Génie Électrique, passionné par {th_tag_fr}. Je suis basé au Maroc et je prépare actuellement mon stage de fin d'études (PFE).
 
-En découvrant votre parcours, j'ai été vraiment inspiré par votre travail et par les projets sur lesquels vous intervenez. Votre expertise dans le domaine est pour moi une source de motivation.
+En découvrant les activités de {company}, j'ai été particulièrement intéressé par vos défis techniques et vos projets d'ingénierie. Votre expertise dans le domaine est pour moi une source de motivation.
 
 Je me permets de vous contacter pour bénéficier de votre regard sur mon CV et mon portfolio. Si vous avez un moment, je serais très reconnaissant d'avoir votre avis pour m'aider à progresser.
 
@@ -283,7 +283,7 @@ Bien cordialement,"""
     else:
         salutation = f"Hi {first_name}," if first_name else "Hello,"
         if is_ceo:
-            subject = f"Your vision at {company} – Student passionate about {th_short_en}"
+            subject = f"Internship Application (PFE) – {company} – Mohammed HSINY"
             body = f"""{salutation}
 
 I hope you are doing well.
@@ -302,7 +302,7 @@ Thank you very much for your time.
 
 Best regards,"""
         elif is_hr:
-            subject = f"Application – 6-Month Graduation Internship (PFE) in {th_hr_en}"
+            subject = f"Application – 6-Month Graduation Internship (PFE) – {company} – Mohammed HSINY"
             body = f"""{salutation}
 
 I hope you are doing well.
@@ -319,14 +319,14 @@ Thank you very much for your consideration.
 
 Best regards,"""
         else:
-            subject = f"Your work at {company} – Student passionate about {th_short_en}"
+            subject = f"Engineering Internship Application (PFE) – {company} – Mohammed HSINY"
             body = f"""{salutation}
 
 I hope you are doing well.
 
 I am a final-year Electrical Engineering student, passionate about {th_tag_en}. I am based in Morocco and currently preparing my 6-month graduation internship (PFE).
 
-Coming across your technical journey, I was truly inspired by your work and the engineering challenges you tackle at {company}.
+Learning about {company}'s engineering achievements, I was very impressed by the technical challenges you tackle.
 
 I would be honored to get your expert feedback on my CV and project portfolio.
 

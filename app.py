@@ -1232,10 +1232,11 @@ Mohammed HSINY
         subject_mode = st.radio(
             "Mode de formulation de l'Objet :",
             [
-                "🤖 Objet Intelligent IA (sur-mesure par entreprise & persona)",
                 "✍️ Format d'Objet Fixe avec Balises ([Entreprise], etc.)",
+                "🤖 Objet Intelligent IA (sur-mesure par entreprise & persona)",
                 "💡 Consigne Spécifique pour l'IA sur l'Objet"
             ],
+            index=0,
             key="studio_subject_mode"
         )
     
@@ -1243,12 +1244,30 @@ Mohammed HSINY
         if "Format d'Objet Fixe" in subject_mode:
             studio_subject_pattern = st.text_input(
                 "Modèle d'objet exact (balises : [Entreprise], [Prénom], [Nom], [Poste]) :",
-                value=st.session_state.get("studio_fixed_subject", "Candidature PFE Ingénieur – [Entreprise] – Mohammed HSINY"),
+                value=st.session_state.get("studio_fixed_subject", "Candidature Stage PFE – [Entreprise] – Mohammed HSINY"),
                 key="studio_fixed_subject_input",
-                help="Exemple : Candidature PFE Ingénieur – [Entreprise] – Mohammed HSINY"
+                help="Exemple : Candidature Stage PFE – [Entreprise] – Mohammed HSINY"
             )
             st.session_state["studio_fixed_subject"] = studio_subject_pattern
-            st.caption("💡 Exemple d'aperçu : *Candidature PFE Ingénieur – Thales – Mohammed HSINY*")
+            st.caption("💡 Aperçu : *Candidature Stage PFE – Thales – Mohammed HSINY*")
+            
+            if st.button("⚡ Remplacer l'Objet de TOUS les contacts de la base par ce format", key="btn_apply_obj_to_all_db"):
+                all_cts = get_all_contacts()
+                up_cnt = 0
+                for c in all_cts:
+                    c["subject"] = substitute_placeholders(
+                        text=studio_subject_pattern,
+                        name=c.get("name", ""),
+                        company=c.get("company", ""),
+                        role=c.get("role", ""),
+                        language=c.get("language", "fr")
+                    )
+                    save_or_update_contact(c)
+                    up_cnt += 1
+                st.success(f"🎉 L'objet a été mis à jour pour les {up_cnt} contacts dans la base !")
+                time.sleep(0.8)
+                st.rerun()
+
         elif "Consigne Spécifique" in subject_mode:
             studio_subject_directive = st.text_input(
                 "Consigne imposée à l'IA pour rédiger l'objet :",
@@ -1259,7 +1278,7 @@ Mohammed HSINY
             st.session_state["studio_subject_directive"] = studio_subject_directive
             st.caption("💡 L'IA respectera scrupuleusement cet ordre pour formuler chaque objet.")
         else:
-            st.info("ℹ️ **Mode Intelligent Actif :** L'IA adapte l'objet pour chaque destinataire selon son persona (CEO, RH ou Ingénieur Tech) et le secteur de l'entreprise.")
+            st.info("ℹ️ **Mode Intelligent Actif :** L'IA génère des objets professionnels (ex: *Candidature Stage PFE – [Entreprise] – Mohammed HSINY*).")
 
     st.markdown("---")
 
@@ -1398,10 +1417,17 @@ Mohammed HSINY
                                 custom_instruction=effective_directive
                             )
 
-                        # Apply Subject Guidance
-                        if "Format d'Objet Fixe" in subject_mode and st.session_state.get("studio_fixed_subject"):
+                        # Apply Subject Guidance (100% strict & guaranteed)
+                        active_subj_mode = st.session_state.get("studio_subject_mode", subject_mode)
+                        active_pattern = (
+                            st.session_state.get("studio_fixed_subject_input") or
+                            st.session_state.get("studio_fixed_subject") or
+                            "Candidature Stage PFE – [Entreprise] – Mohammed HSINY"
+                        ).strip()
+
+                        if "Format d'Objet Fixe" in active_subj_mode or "Fixe" in active_subj_mode:
                             final_subject = substitute_placeholders(
-                                text=st.session_state.get("studio_fixed_subject"),
+                                text=active_pattern,
                                 name=contact.get("name", ""),
                                 company=contact.get("company", ""),
                                 role=contact.get("role", ""),
@@ -1582,6 +1608,34 @@ with tab4:
         gen_count = len([c for c in contacts if c.get("status") == "generated"])
         app_count = len([c for c in contacts if c.get("status") == "approved"])
         
+                # Quick Bulk Subject Update Toolbar
+        with st.expander("🏷️ Modifier en 1 clic l'Objet de Tous les Contacts (ex: Candidature Stage PFE – [Entreprise] – Mohammed HSINY)", expanded=False):
+            col_so1, col_so2 = st.columns([3, 1])
+            with col_so1:
+                tab4_bulk_pattern = st.text_input(
+                    "Format d'objet global (avec balise [Entreprise]) :",
+                    value="Candidature Stage PFE – [Entreprise] – Mohammed HSINY",
+                    key="tab4_bulk_subject_pattern"
+                )
+            with col_so2:
+                st.write("")
+                st.write("")
+                if st.button("⚡ Remplacer pour Tous", key="btn_tab4_replace_all_subjects", use_container_width=True):
+                    up_cnt = 0
+                    for c in contacts:
+                        c["subject"] = substitute_placeholders(
+                            text=tab4_bulk_pattern,
+                            name=c.get("name", ""),
+                            company=c.get("company", ""),
+                            role=c.get("role", ""),
+                            language=c.get("language", "fr")
+                        )
+                        save_or_update_contact(c)
+                        up_cnt += 1
+                    st.success(f"🎉 Objet mis à jour pour les {up_cnt} contacts !")
+                    time.sleep(0.8)
+                    st.rerun()
+
         col_hdr1, col_hdr2 = st.columns([3, 2])
         with col_hdr1:
             st.info(f"📊 **Statut Global :** **{app_count}** approuvés (prêts pour l'envoi), **{gen_count}** générés par l'IA en attente de validation sur **{len(contacts)}** contacts.")
@@ -1874,12 +1928,12 @@ with tab_manual:
         man_lang = "fr" if is_man_fr else "en"
 
         def_subjs = {
-            "fr_rh": "Candidature – Stage PFE en systèmes embarqués et drones",
-            "fr_ceo": f"Votre vision chez {man_company.strip() or '[Entreprise]'} – Étudiant passionné par les systèmes embarqués et les drones",
-            "fr_eng": f"Votre parcours chez {man_company.strip() or '[Entreprise]'} – Étudiant passionné par les systèmes embarqués et les drones",
-            "en_rh": "Application – 6-Month Graduation Internship (PFE) in Embedded Systems & Drones",
-            "en_ceo": f"Your vision at {man_company.strip() or '[Company]'} – Student passionate about embedded systems & drones",
-            "en_eng": f"Your work at {man_company.strip() or '[Company]'} – Student passionate about embedded systems & drones",
+            "fr_rh": f"Candidature Stage PFE Ingénieur – {man_company.strip() or '[Entreprise]'} – Mohammed HSINY",
+            "fr_ceo": f"Candidature Stage PFE – {man_company.strip() or '[Entreprise]'} – Mohammed HSINY",
+            "fr_eng": f"Candidature PFE Ingénieur – {man_company.strip() or '[Entreprise]'} – Mohammed HSINY",
+            "en_rh": f"Application – 6-Month Graduation Internship (PFE) – {man_company.strip() or '[Company]'} – Mohammed HSINY",
+            "en_ceo": f"Internship Application (PFE) – {man_company.strip() or '[Company]'} – Mohammed HSINY",
+            "en_eng": f"Engineering Internship Application (PFE) – {man_company.strip() or '[Company]'} – Mohammed HSINY",
         }
 
         default_subj = def_subjs["fr_rh"] if is_man_fr else def_subjs["en_rh"]

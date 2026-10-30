@@ -235,22 +235,22 @@ def get_target_subject(persona: str, theme: str = "auto", company: str = "", lan
 
     if language == "fr":
         if persona == "CEO_DIRECTEUR":
-            return f"Votre vision chez {comp_name} – Étudiant passionné par {th_fr}"
+            return f"Candidature Stage PFE – {comp_name} – Mohammed HSINY"
         elif persona == "RH_TALENT":
-            return f"Candidature – Stage PFE en {th_hr_fr}"
+            return f"Candidature Stage PFE Ingénieur – {comp_name} – Mohammed HSINY"
         elif persona in ["INGENIEUR_TECH", "RD_LEAD_ARCHITECT"]:
-            return f"Votre parcours chez {comp_name} – Étudiant passionné par {th_fr}"
+            return f"Candidature PFE Ingénieur – {comp_name} – Mohammed HSINY"
         else:
-            return f"Stage PFE – Demande de conseil chez {comp_name}"
+            return f"Candidature Stage PFE – {comp_name} – Mohammed HSINY"
     else:
         if persona == "CEO_DIRECTEUR":
-            return f"Your vision at {comp_name} – Student passionate about {th_en}"
+            return f"Internship Application (PFE) – {comp_name} – Mohammed HSINY"
         elif persona == "RH_TALENT":
-            return f"Application – 6-Month Graduation Internship (PFE) in {th_hr_en}"
+            return f"Application – 6-Month Graduation Internship (PFE) – {comp_name} – Mohammed HSINY"
         elif persona in ["INGENIEUR_TECH", "RD_LEAD_ARCHITECT"]:
-            return f"Your work at {comp_name} – Student passionate about {th_en}"
+            return f"Engineering Internship Application (PFE) – {comp_name} – Mohammed HSINY"
         else:
-            return f"PFE Internship Opportunity at {comp_name}"
+            return f"Graduation Internship Application – {comp_name} – Mohammed HSINY"
 
 def build_system_prompt(theme: str = "auto", tone: str = "persuasive_tech") -> str:
     theme_info = THEMES_CATALOG.get(theme, THEMES_CATALOG["auto"])
