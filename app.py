@@ -1342,7 +1342,23 @@ Mohammed HSINY
                     )
                 try:
                     res_test = asyncio.run(test_gen())
-                    st.session_state["studio_test_res_subject"] = res_test.subject
+                    active_subj_mode = st.session_state.get("studio_subject_mode", subject_mode)
+                    if "Format d'Objet Fixe" in active_subj_mode or "Fixe" in active_subj_mode:
+                        active_pattern = (
+                            st.session_state.get("studio_fixed_subject_input") or
+                            st.session_state.get("studio_fixed_subject") or
+                            "Candidature Stage PFE – [Entreprise] – Mohammed HSINY"
+                        ).strip()
+                        final_subj = substitute_placeholders(
+                            text=active_pattern,
+                            name=target_test_contact.get("name", ""),
+                            company=target_test_contact.get("company", ""),
+                            role=target_test_contact.get("role", ""),
+                            language=res_test.language
+                        )
+                        st.session_state["studio_test_res_subject"] = final_subj
+                    else:
+                        st.session_state["studio_test_res_subject"] = res_test.subject
                     st.session_state["studio_test_res_body"] = res_test.body
                 except Exception as ex:
                     st.error(f"Erreur lors de l'essai : {ex}")
