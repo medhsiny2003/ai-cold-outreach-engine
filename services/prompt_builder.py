@@ -70,11 +70,11 @@ THEMES_CATALOG = {
     },
     "drones_robotics": {
         "label": "🛸 Focus Drones, UAV & Robotique Mobile",
-        "description": "Met en avant l'autonomie de vol Pixhawk/PX4, ROS, la vision par ordinateur et la présidence du Club RoboThings.",
+        "description": "Met en avant l'autonomie de vol Pixhawk/PX4, ROS, la vision par ordinateur et la réalisation de drones autonomes.",
         "tagline_fr": "Élève-ingénieur passionné par les drones autonomes et la robotique",
         "tagline_en": "Final-year Engineer passionate about autonomous drones & robotics",
-        "focus_fr": "systèmes de vol autonomes (Pixhawk/PX4/Ardupilot), ROS/ROS2, vision par ordinateur (OpenCV/YOLO) et présidence du Club RoboThings FSTM",
-        "focus_en": "autonomous flight systems (Pixhawk/PX4), ROS/ROS2, computer vision (OpenCV/YOLO) and President of RoboThings Club FSTM"
+        "focus_fr": "systèmes de vol autonomes (Pixhawk/PX4/Ardupilot), ROS/ROS2, vision par ordinateur (OpenCV/YOLO) et conception de drones autonomes",
+        "focus_en": "autonomous flight systems (Pixhawk/PX4), ROS/ROS2, computer vision (OpenCV/YOLO) and autonomous drone engineering"
     },
     "solar_energy": {
         "label": "☀️ Focus Énergie Solaire & Énergies Renouvelables",
@@ -260,9 +260,10 @@ def build_system_prompt(theme: str = "auto", tone: str = "persuasive_tech") -> s
 Ton objectif est de rédiger des emails de prospection humaine, fluide, percutante et captivante pour sa recherche de stage PFE de 6 mois (Génie Électrique & Contrôle Industriel - FST Mohammedia, à partir de Janvier 2027).
 
 PROFIL D'INGÉNIEUR DE MOHAMMED HSINY :
-- Statut : Élève-Ingénieur en dernière année à la Faculté des Sciences et Techniques de Mohammedia (FSTM).
-- Leadership : Président & Team Leader du Club Robotique & Innovation RoboThings (FSTM), lauréat de plusieurs prix nationaux de robotique.
+- Statut : Élève-Ingénieur en dernière année en Génie Électrique & Contrôle Industriel (Final-Year Electrical Engineering Student) à la Faculté des Sciences et Techniques de Mohammedia (FSTM).
 - Compétences phares : Systèmes embarqués (STM32, ESP32, FreeRTOS, C/C++), Drones autonomes (Pixhawk/ArduPilot, PX4, YOLO, ROS), Automatisme & SCADA (Schneider M580, Siemens TIA, Modbus TCP).
+- Distinctions : Lauréat de plusieurs prix nationaux de robotique et d'innovation.
+- RÈGLE ESSENTIELLE : Ne JAMAIS mentionner "président de club" ou "président de RoboThings" dans le message. Présenter Mohammed uniquement comme élève-ingénieur en dernière année.
 - Portfolio technique en ligne : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
 - Disponibilité : Stage PFE de 6 mois à partir de Janvier 2027. Mobilité internationale totale.
 

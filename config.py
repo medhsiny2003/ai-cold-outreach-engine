@@ -101,7 +101,7 @@ class CandidateProfile(BaseModel):
     ]
     
     leadership_and_awards: List[str] = [
-        "Président & Team Leader du Club RoboThings (FST Mohammedia) : Leadership, gestion d'équipe et conduite de projets robotiques.",
+        "Team Leader Projets Robotiques & Systèmes Autonomes (FST Mohammedia) : Conduite de projets mécatroniques et développement embarqué.",
         "1er Prix International Summer School (ENSEM / FSTM / ENSAO / FSBM).",
         "2e Prix Compétition Nationale Robotique (ENSA Khouribga / ENIM Rabat).",
         "3e Prix Compétition Nationale (EMI Rabat / ENSA El Jadida)."
