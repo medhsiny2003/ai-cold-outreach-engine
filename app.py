@@ -32,7 +32,8 @@ try:
         get_all_recruiter_responses, mark_response_read, trigger_waterfall_retry_bounced,
         delete_contact_by_id, delete_contacts_bulk, update_contacts_status_bulk, reset_all_data_and_contacts,
         delete_contacts_by_status, reset_all_contacts_to_pending, reset_sent_and_bounced_to_pending, clear_sent_logs_history,
-        get_unique_companies_summary, exclude_contacts_by_companies, reinclude_contacts_by_companies, delete_contacts_by_companies, save_document_blob, restore_documents_from_db
+        get_unique_companies_summary, exclude_contacts_by_companies, reinclude_contacts_by_companies, delete_contacts_by_companies,
+        save_document_blob, restore_documents_from_db
     )
 except ImportError:
     from services.storage_service import (
@@ -55,6 +56,8 @@ except ImportError:
     def exclude_contacts_by_companies(c_names): return 0
     def reinclude_contacts_by_companies(c_names): return 0
     def delete_contacts_by_companies(c_names): return 0
+    def save_document_blob(doc_name, file_bytes): pass
+    def restore_documents_from_db(): pass
 
 try:
     from services.email_validator import validate_single_email, validate_contacts_list

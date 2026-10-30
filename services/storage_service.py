@@ -655,6 +655,12 @@ def delete_contacts_by_companies(company_names: List[str]) -> int:
 
 
 
+def clear_sent_logs_history():
+    """Clears all records in sent_logs table."""
+    with get_db_connection() as conn:
+        conn.execute("DELETE FROM sent_logs")
+        conn.commit()
+
 def save_document_blob(doc_name: str, file_bytes: bytes):
     """Saves a binary file to SQLite app_documents table for permanent cross-session storage."""
     with get_db_connection() as conn:
