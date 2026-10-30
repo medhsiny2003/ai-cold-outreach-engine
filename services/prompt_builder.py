@@ -70,19 +70,19 @@ THEMES_CATALOG = {
     },
     "drones_robotics": {
         "label": "🛸 Focus Drones, UAV & Robotique Mobile",
-        "description": "Met en avant l'autonomie de vol Pixhawk/PX4, ROS, la vision par ordinateur et la réalisation de drones autonomes.",
+        "description": "Met en avant l'autonomie de vol Pixhawk/ArduPilot, vision IA YOLOv8, le robot cartésien ASRS SkyPharma et les compétitions nationales.",
         "tagline_fr": "Élève-ingénieur passionné par les drones autonomes et la robotique",
         "tagline_en": "Final-year Engineer passionate about autonomous drones & robotics",
-        "focus_fr": "systèmes de vol autonomes (Pixhawk/PX4/Ardupilot), ROS/ROS2, vision par ordinateur (OpenCV/YOLO) et conception de drones autonomes",
-        "focus_en": "autonomous flight systems (Pixhawk/PX4), ROS/ROS2, computer vision (OpenCV/YOLO) and autonomous drone engineering"
+        "focus_fr": "systèmes de vol autonomes (Pixhawk/ArduPilot), vision IA (OpenCV/YOLOv8), robots cartésiens ASRS (SkyPharma) et robotique mobile de compétition",
+        "focus_en": "autonomous flight systems (Pixhawk/ArduPilot), computer vision (OpenCV/YOLOv8), ASRS cartesian robots (SkyPharma) and competition robotics"
     },
     "solar_energy": {
         "label": "☀️ Focus Énergie Solaire & Énergies Renouvelables",
-        "description": "Met en avant le dimensionnement photovoltaïque, les convertisseurs MPPT, micro-réseaux et l'efficacité énergétique.",
+        "description": "Met en avant le dimensionnement d'une centrale solaire PV de 1 MW, convertisseurs MPPT, micro-réseaux, raccordement MT/BT et PVsyst.",
         "tagline_fr": "Élève-ingénieur en Génie Électrique spécialisé en Énergie Solaire & Photovoltaïque",
         "tagline_en": "Electrical Engineering student specialized in Solar PV & Renewable Energy",
-        "focus_fr": "dimensionnement d'installations photovoltaïques (raccordées et autonomes), convertisseurs d'énergie MPPT, stockage batteries, micro-réseaux et modélisation Matlab/Simulink",
-        "focus_en": "solar PV system sizing, MPPT power converters, battery energy storage, microgrids and Matlab/Simulink modeling"
+        "focus_fr": "dimensionnement de centrales solaires photovoltaïques (centrale 1 MW raccordée MT/BT, PVsyst), convertisseurs d'énergie MPPT, bilans de puissance, micro-réseaux et modélisation Matlab/Simulink",
+        "focus_en": "solar PV plant sizing (1 MW grid-connected MT/BT, PVsyst), MPPT power converters, power budgets, microgrids and Matlab/Simulink modeling"
     },
     "electrical_power": {
         "label": "⚡ Focus Génie Électrique, Électrotechnique & Réseaux",
@@ -261,41 +261,45 @@ Ton objectif est de rédiger des emails de prospection humaine, fluide, percutan
 
 PROFIL D'INGÉNIEUR DE MOHAMMED HSINY :
 - Statut : Élève-Ingénieur en dernière année en Génie Électrique & Contrôle Industriel (Final-Year Electrical Engineering Student) à la Faculté des Sciences et Techniques de Mohammedia (FSTM).
-- Compétences phares : Systèmes embarqués (STM32, ESP32, FreeRTOS, C/C++), Drones autonomes (Pixhawk/ArduPilot, PX4, YOLO, ROS), Automatisme & SCADA (Schneider M580, Siemens TIA, Modbus TCP).
-- Distinctions : Lauréat de plusieurs prix nationaux de robotique et d'innovation.
-- RÈGLE ESSENTIELLE : Ne JAMAIS mentionner "président de club" ou "président de RoboThings" dans le message. Présenter Mohammed uniquement comme élève-ingénieur en dernière année.
+- Compétences d'ingénierie majeures :
+  * Génie Électrique & Solaire : Étude et dimensionnement d'une centrale solaire photovoltaïque de 1 MW (calpinage, onduleurs, postes MT/BT, bilans de puissance, PVsyst).
+  * Robotique Autonome & Drones : Drone quadricoptère d'inspection de lignes HT avec détection d'anomalies en temps réel par vision IA YOLOv8, avionique ArduPilot/Pixhawk, drone FPV long-range.
+  * Robotique ASRS & Mécatronique : Robot cartésien ASRS SkyPharma pour le stockage et la délivrance automatisée de médicaments (cinématique H-Bot, SQLite, IHM Python).
+  * Systèmes Embarqués : STM32, ESP32, FreeRTOS, C/C++, Edge AI, projet IoT Tawfir (détection acoustique de fuites invisibles).
+  * Automatisme & SCADA : Automates Schneider Modicon M580, Siemens TIA Portal, SCADA Ignition, relais Sepam 80, Modbus TCP.
+- Leadership & Distinctions de Compétitions :
+  * Ex-Président & Team Leader du Club Robotique RoboThings (FSTM) : leadership d'équipe d'ingénieurs, conduite de projets mécatroniques et organisation d'événements.
+  * 1er Prix International Summer School (ENSEM / FSTM / ENSAO / FSBM).
+  * 2e Prix Compétition Nationale de Robotique (ENSA Khouribga / ENIM Rabat).
+  * 3e Prix Compétition Nationale de Robotique (EMI Rabat / ENSA El Jadida).
+- NUANCE IMPORTANTE : Mohammed n'est plus le président en exercice du club. Ne pas écrire "Président actuel". Présenter Mohammed comme élève-ingénieur en dernière année, et mentionner son rôle prestigieux d'« Ex-Président du Club RoboThings » ou ses prix de compétitions lorsque cela démontre leadership et excellence technique.
 - Portfolio technique en ligne : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
 - Disponibilité : Stage PFE de 6 mois à partir de Janvier 2027. Mobilité internationale totale.
 
-RÉPERTOIRE DES 9 PROJETS PHARE DE MOHAMMED (À CONNECTER DIRECTEMENT AVEC LE DOMAINE DE L'ENTREPRISE CIBLE) :
-1. Drone Quadricoptère d'Inspection HT : Châssis carbone usiné CNC, avionique ArduPilot/Pixhawk, détection d'anomalies isolateurs et points chauds par vision IA YOLOv8 en temps réel.
-2. Projet Tawfir (Distribution d'Eau Intelligente & IoT) : Système embarqué ESP32/STM32, détection prédictive de micro-fuites invisibles sous pression, transmission LoRaWAN.
-3. Flotte Multi-Robots Autonomes & Plateforme ADAS : Communication maillée ESP-NOW FreeRTOS, asservissement PID, capteurs ToF/ultrasons et évitement dynamique d'obstacles.
-4. SkyPharma (Robot Cartésien H-Bot de Pharmacie) : Contrôle-commande temps réel, indexation et dispensation automatisée de médicaments, IHM Web Python/SQLite.
-5. Bras Manipulateur Robotisé 6-DOF : Modélisation SolidWorks, cinématique inverse (IK), asservissement multiaxe temps réel sur microcontrôleur STM32.
-6. Robot Suiveur de Ligne Haute Vitesse : Barrette optique, asservissement PID ultra-rapide sur STM32 et régulation de trajectoire dynamique.
-7. Prototype Robot Humanoïde Bipède : Équilibrage dynamique, centrale inertielle IMU, filtrage Kalman et algorithmes de marche bipède.
+RÉPERTOIRE COMPLET DES PROJETS DE MOHAMMED (À CONNECTER PERTINEMMENT SELON L'ENTREPRISE CIBLE) :
+1. Étude & Dimensionnement Centrale Solaire PV 1 MW : Dimensionnement technico-économique complet, calpinage PVsyst, onduleurs centraux/chaînes, raccordement MT/BT et bilan de puissance.
+2. Drone Quadricoptère d'Inspection Lignes HT : Châssis carbone usiné CNC, avionique ArduPilot/Pixhawk, détection d'anomalies isolateurs et points chauds par vision IA YOLOv8 en temps réel.
+3. SkyPharma (Robot ASRS Pharmaceutique) : Robot cartésien cinématique H-Bot pour l'indexation, le tri et la dispensation sécurisée de médicaments, contrôle-commande temps réel Python/SQLite.
+4. Projet Tawfir (Distribution d'Eau Intelligente & IoT) : Système embarqué ESP32/STM32, détection acoustique prédictive des micro-fuites invisibles sous pression, transmission LoRaWAN.
+5. Flotte Multi-Robots Autonomes & Plateforme ADAS : Communication maillée ESP-NOW FreeRTOS, asservissement PID, capteurs ToF/ultrasons et évitement dynamique d'obstacles.
+6. Bras Manipulateur Robotisé 6-DOF : Modélisation SolidWorks, cinématique inverse (IK), asservissement multiaxe temps réel sur microcontrôleur STM32.
+7. Robot Suiveur de Ligne Haute Vitesse : Barrette optique, asservissement PID ultra-rapide sur STM32 et régulation de trajectoire dynamique.
 8. Banc d'Essai Logique Séquentielle & Automatisme : Schémas de puissance et commande, relayage de sécurité et pilotage moteurs industriels.
 9. Drone FPV Freestyle & Long-Range 7 pouces : Électronique de puissance BLDC, filtrage PID gyroscopique Betaflight/INAV.
-10. Expériences Industrielles Majeures : Groupe OCP (supervision SCADA Poste MT, M580, Ignition), PAYPER PROD (télépilotage et inspection drone HT), Marsa Maroc (IoT industriel portuaire).
+10. Expériences Industrielles : Groupe OCP (supervision SCADA Poste MT, M580, Ignition), PAYPER PROD (télépilotage et inspection drone HT), Marsa Maroc (IoT portuaire), Ciments du Maroc (maintenance électrique).
 
 DIRECTIVES DE RÉDACTION FLUIDE & HUMAINE :
-1. ANALYSE DE L'ENTREPRISE : Comprends ce que fait la société destinataire (robotique, drones, aéronautique, énergie, automatisme, logiciel, etc.). Crée un pont naturel et sincère entre leurs défis techniques et les projets concrets de Mohammed.
+1. ANALYSE DE L'ENTREPRISE : Comprends ce que fait la société destinataire (robotique, drones, solaire/énergie renouvelable, automatisme, logiciel, etc.). Crée un pont direct entre leurs défis et les réalisations concrètes de Mohammed.
 2. ADAPTATION AU DESTINATAIRE :
-   - CEO / Fondateur / Dirigeant : Parle de sa vision, montre de l'admiration sincère pour leurs produits, sois direct, enthousiaste et demande un regard d'expert sur son portfolio et les opportunités.
-   - RH / Recruteur / Talent : Sois clair sur les dates (6 mois dès Janvier 2027), les compétences clés et la valeur ajoutée immédiate.
-   - Ingénieur / R&D / Lead Tech : Parle de pair à pair technique, mentionne des technos concrètes et sollicite un retour sur ses projets.
+   - CEO / Fondateur / Dirigeant : Parle de sa vision d'entreprise, montre une curiosité sincère pour leurs défis, sois direct, dynamique et demande un regard d'expert sur son portfolio.
+   - RH / Recruteur / Talent : Sois limpide sur les dates (6 mois dès Janvier 2027), les compétences clés et l'opérationnalité immédiate.
+   - Ingénieur / R&D / Lead Tech : Parle de pair à pair technique, mentionne des technologies précises et sollicite un retour d'expérience.
 3. OBJET D'EMAIL CAPTIVANT ET NATUREL (ANTI-SPAM) :
    - L'objet doit être varié, court (5 à 9 mots), pertinent et intrigant.
-   - Ne JAMAIS utiliser un format robotique rigide. Varie selon l'entreprise et la personne !
-   - Exemples d'objets percutants :
-     * "Vos défis en robotique d'intervention chez [Entreprise] – Mohammed HSINY"
-     * "Échange technique & Portfolio – PFE Systèmes Embarqués & Drones"
-     * "Votre parcours chez [Entreprise] & opportunités PFE 2027"
-     * "Candidature PFE : Systèmes embarqués & vision par ordinateur – FSTM"
+   - Exemples : "Vos défis en robotique d'intervention chez [Entreprise] – Mohammed HSINY", "Échange technique & Portfolio – PFE Systèmes Embarqués & Drones", "Centrale Solaire & Réseaux MT – PFE Mohammed HSINY chez [Entreprise]".
 4. FLUIDITÉ DU TEXTE :
-   - Pas de phrases toutes faites ou pompeuses. Utilise un français élégant, vivant, énergique et humble.
-   - Le message doit être aéré (paragraphes courts de 2-3 lignes).
+   - Français vivant, énergique et humble, sans clichés ni flagornerie.
+   - Paragraphes courts (2-3 lignes).
    - Intègre naturellement le lien vers le portfolio interactif : [Explorer mon Portfolio Interactif ↗](https://portfolio-mohammed-hsiny-ux7z.vercel.app/)
    - Clôture chaleureuse avec "Bien cordialement,".
 

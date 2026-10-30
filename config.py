@@ -36,20 +36,27 @@ class CandidateProfile(BaseModel):
     portfolio_pdf_path: Optional[str] = None
     
     specialties_fr: List[str] = [
+        "Génie Électrique & Énergies Renouvelables (Dimensionnement Solaire 1 MW, Réseaux MT/BT, Postes HTA, PVsyst)",
         "Systèmes Embarqués (STM32, ESP32, FreeRTOS, C/C++)",
-        "Robotique Autonome & Drones (ArduPilot, YOLO, OpenCV, ROS, Betaflight)",
-        "Automatisme Industriel & SCADA (M580, TIA Portal, Ignition, Modbus TCP)",
-        "R&D, Prototypage Rapide (SolidWorks, KiCad, Électronique, Impression 3D)"
+        "Robotique Autonome & Drones (ArduPilot, Pixhawk, YOLOv8, OpenCV, ROS, Betaflight)",
+        "Automatisme Industriel & SCADA (Schneider M580, Siemens TIA Portal, Ignition, Modbus TCP)",
+        "R&D Mécatronique & Prototypage (SolidWorks, KiCad, Châssis Carbone CNC, Impression 3D)"
     ]
     
     specialties_en: List[str] = [
+        "Electrical Engineering & Renewable Energy (1 MW Solar PV Sizing, MV/LV Substation, PVsyst, Power Distribution)",
         "Embedded Systems (STM32, ESP32, FreeRTOS, C/C++)",
-        "Robotics & Autonomous Drones (ArduPilot, YOLO, Computer Vision, ROS, Betaflight)",
+        "Autonomous Robotics & Drones (ArduPilot, Pixhawk, YOLOv8, Computer Vision, ROS, Betaflight)",
         "Industrial Automation & SCADA (Schneider M580, Siemens TIA, Ignition, Modbus TCP)",
-        "R&D, Rapid Prototyping (SolidWorks, KiCad, PCB Design, 3D Printing)"
+        "Mechatronics R&D & Prototyping (SolidWorks, KiCad, CNC Carbon Frames, 3D Printing)"
     ]
     
     key_projects: List[Dict[str, str]] = [
+        {
+            "name": "Étude & Dimensionnement d'une Centrale Solaire Photovoltaïque de 1 MW",
+            "stack": "Génie Électrique, PVsyst, Calpinage Solaire, Onduleurs de Branche/Centraux, Raccordement MT/BT, Schémas Unifilaires",
+            "desc": "Étude technico-économique et dimensionnement complet d'une centrale solaire PV de 1 MW raccordée au réseau moyenne tension : calpinage, bilan de puissance, choix des onduleurs et transformateurs, optimisation du productible et modélisation des pertes."
+        },
         {
             "name": "Drone Quadricoptère d'Inspection Lignes HT",
             "stack": "ArduPilot, Pixhawk, YOLOv8, Python, OpenCV, MAVLink, Châssis Carbone CNC",
@@ -66,9 +73,9 @@ class CandidateProfile(BaseModel):
             "desc": "Flotte de robots mobiles coopératifs communiquant en réseau maillé ultra-rapide avec régulation de vitesse adaptative et évitement d'obstacles dynamique."
         },
         {
-            "name": "SkyPharma – Robot Cartésien H-Bot de Stockage Pharmaceutique",
-            "stack": "Cinématique H-Bot, Contrôle-Commande Temps Réel, Python, SQLite, IHM Web",
-            "desc": "Robot cartésien automatisé pour la gestion, l'indexation et la dispensation ultra-précise de médicaments en milieu hospitalier et officine."
+            "name": "SkyPharma – Robot ASRS (Automated Storage & Retrieval System) Pharmaceutique",
+            "stack": "Robot Cartésien Cinématique H-Bot, Contrôle-Commande Temps Réel, Python, SQLite, IHM Web, Motorisation Pas-à-Pas",
+            "desc": "Robot ASRS automatisé à cinématique H-Bot pour la dispensation, l'inventaire dynamique et la délivrance ultra-sécurisée de médicaments en milieu hospitalier et officines."
         },
         {
             "name": "Bras Manipulateur Robotisé 6-DOF",
@@ -121,10 +128,10 @@ class CandidateProfile(BaseModel):
     ]
     
     leadership_and_awards: List[str] = [
-        "Team Leader Projets Robotiques & Systèmes Autonomes (FST Mohammedia) : Conduite de projets mécatroniques et développement embarqué.",
-        "1er Prix International Summer School (ENSEM / FSTM / ENSAO / FSBM).",
-        "2e Prix Compétition Nationale Robotique (ENSA Khouribga / ENIM Rabat).",
-        "3e Prix Compétition Nationale (EMI Rabat / ENSA El Jadida)."
+        "Ex-Président & Team Leader du Club RoboThings (FST Mohammedia) : Leadership d'équipe d'ingénierie, gestion de projets mécatroniques et organisation d'événements technologiques.",
+        "1er Prix International Summer School (ENSEM / FSTM / ENSAO / FSBM) – Projet d'innovation et technologies émergentes.",
+        "2e Prix Compétition Nationale de Robotique (ENSA Khouribga / ENIM Rabat) – Performance robotique autonome.",
+        "3e Prix Compétition Nationale de Robotique (EMI Rabat / ENSA El Jadida) – Défis robotiques et ingénierie de pointe."
     ]
 
 class SMTPSettings(BaseModel):

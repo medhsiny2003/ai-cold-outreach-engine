@@ -142,6 +142,7 @@ def build_professional_html(
         email_label = "Email"
         portfolio_label = "Online Portfolio"
         linkedin_label = "LinkedIn"
+        badge_text = "🏆 Ex-President RoboThings • Robotics Competition Winner"
         attachment_notice = "📎 Resume (PDF) & Portfolio Dossier (PDF) attached"
     else:
         title_text = "Élève-Ingénieur en Génie Électrique (Dernière Année)"
@@ -150,6 +151,7 @@ def build_professional_html(
         email_label = "Email"
         portfolio_label = "Portfolio en ligne"
         linkedin_label = "LinkedIn"
+        badge_text = "🏆 Ex-Président RoboThings • Lauréat Compétitions Robotiques"
         attachment_notice = "📎 CV (PDF) & Dossier Portfolio (PDF) joints"
 
     # Logo tag for signature footer (discreet size: 52px width, rounded)
@@ -196,6 +198,9 @@ def build_professional_html(
                                 </div>
                                 <div style="font-size: 12px; color: #64748b; margin-top: 1px;">
                                     {school_text}
+                                </div>
+                                <div style="font-size: 11.5px; color: #d97706; font-weight: 600; margin-top: 3px;">
+                                    {badge_text}
                                 </div>
                                 
                                 <!-- Links & Contacts row -->
