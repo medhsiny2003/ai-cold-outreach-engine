@@ -51,29 +51,49 @@ class CandidateProfile(BaseModel):
     
     key_projects: List[Dict[str, str]] = [
         {
-            "name": "Drone Quadricoptère d'Inspection HT",
-            "stack": "ArduPilot, YOLO, Python, OpenCV",
-            "desc": "Conception d'un drone autonome pour l'inspection de lignes haute tension avec détection d'anomalies en temps réel par IA."
+            "name": "Drone Quadricoptère d'Inspection Lignes HT",
+            "stack": "ArduPilot, Pixhawk, YOLOv8, Python, OpenCV, MAVLink, Châssis Carbone CNC",
+            "desc": "Conception intégrale et vol autonome d'un drone quadricoptère dédié à l'inspection de lignes haute tension avec détection d'anomalies (isolateurs défectueux, points chauds) en temps réel par vision IA embarquée."
         },
         {
-            "name": "SkyPharma - Robot Cartésien H-Bot",
-            "stack": "H-Bot, GRBL, PySerial, SQLite, Python",
-            "desc": "Robot cartésien de gestion automatisée de stock avec interface web de supervision."
+            "name": "Projet Tawfir – Distribution Intelligente d'Eau & Détection de Fuites Invisibles",
+            "stack": "Embedded AI, ESP32, STM32, Capteurs Débit/Pression, IoT, LoRaWAN",
+            "desc": "Système embarqué IoT pour la gestion hydrique intelligente et la détection acoustique prédictive des micro-fuites invisibles dans les réseaux de distribution sous pression."
         },
         {
-            "name": "Bras Manipulateur Robotisé 6 DOF",
-            "stack": "SolidWorks, STM32, C++, Tkinter, Cinématique inverse",
-            "desc": "Conception mécanique 3D et contrôle-commande embarqué temps réel sur microcontrôleur STM32."
+            "name": "Flotte Multi-Robots Autonomes & Plateforme ADAS",
+            "stack": "FreeRTOS, ESP-NOW, Asservissement PID, Capteurs Ultrasons/ToF, Évitement d'obstacles",
+            "desc": "Flotte de robots mobiles coopératifs communiquant en réseau maillé ultra-rapide avec régulation de vitesse adaptative et évitement d'obstacles dynamique."
         },
         {
-            "name": "Flotte Multi-Robots Mobiles ADAS",
-            "stack": "ESP-NOW, PID, FreeRTOS, Ultrasons",
-            "desc": "Robots autonomes communicants avec asservissement PID et évitement d'obstacles en réseau maillé."
+            "name": "SkyPharma – Robot Cartésien H-Bot de Stockage Pharmaceutique",
+            "stack": "Cinématique H-Bot, Contrôle-Commande Temps Réel, Python, SQLite, IHM Web",
+            "desc": "Robot cartésien automatisé pour la gestion, l'indexation et la dispensation ultra-précise de médicaments en milieu hospitalier et officine."
         },
         {
-            "name": "Drone FPV Freestyle 7 pouces",
-            "stack": "Betaflight, INAV, FPV, Moteurs Brushless",
-            "desc": "Dimensionnement de propulsion, électronique embarquée et réglage fin des filtres PID de vol."
+            "name": "Bras Manipulateur Robotisé 6-DOF",
+            "stack": "SolidWorks 3D, Cinématique Inverse (IK), STM32 C++, Asservissement Multiaxe",
+            "desc": "Conception mécanique complète, cinématique directe et inverse, et asservissement en boucle fermée temps réel de 6 servomoteurs pour tâches de pick-and-place industrielles."
+        },
+        {
+            "name": "Robot Suiveur de Ligne Haute Vitesse",
+            "stack": "Microcontrôleur STM32, Barrette Capteurs Optiques, Régulation PID Rapide, PWM",
+            "desc": "Robot mobile de compétition avec algorithmes avancés d'asservissement PID et de prédiction de courbure pour navigation haute vitesse."
+        },
+        {
+            "name": "Prototype de Robot Humanoïde Bipède",
+            "stack": "Robotique Bipède, Équilibrage Dynamique, IMU, Filtrage Kalman, C++",
+            "desc": "Étude et prototypage d'une structure bipède articulée avec algorithmes de stabilisation d'assiette et contrôle de marche dynamique."
+        },
+        {
+            "name": "Banc d'Essai Logique Séquentielle Câblée & Automatisme",
+            "stack": "Électrotechnique Industrielle, Relais, Contacteurs, Sécurités Machine, Schémas Électriques",
+            "desc": "Plateforme didactique et industrielle pour le câblage, le test et la validation de circuits de commande et de puissance sécurisés pour moteurs industriels."
+        },
+        {
+            "name": "Drone FPV Freestyle & Long-Range 7 pouces",
+            "stack": "Betaflight, INAV, Filtrage PID Giroscopique, Électronique de Puissance ESC/BLDC",
+            "desc": "Dimensionnement de propulsion haute puissance, électronique de vol embarquée et réglage fin des filtres logiciels pour vol longue distance."
         }
     ]
     

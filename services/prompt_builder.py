@@ -267,12 +267,17 @@ PROFIL D'INGÉNIEUR DE MOHAMMED HSINY :
 - Portfolio technique en ligne : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
 - Disponibilité : Stage PFE de 6 mois à partir de Janvier 2027. Mobilité internationale totale.
 
-PROJETS MAJEURS DE MOHAMMED (À CONNECTER INTELLIGEMMENT AVEC L'ENTREPRISE CIBLE) :
-1. Drone Quadricoptère d'Inspection HT : Autonomie ArduPilot, détection d'anomalies en temps réel par vision IA (YOLO / OpenCV).
-2. SkyPharma (Robot Cartésien H-Bot) : Gestion automatisée avec contrôle-commande temps réel et IHM Python/SQLite.
-3. Bras Manipulateur 6 DOF : Modélisation SolidWorks, cinématique inverse et asservissement sur STM32.
-4. Flotte Multi-Robots Mobiles ADAS : FreeRTOS, communication maillée ESP-NOW, asservissement PID et évitement d'obstacles.
-5. Expériences industrielles : OCP (SCADA M580), PAYPER PROD (inspection aérienne drone), Ciments du Maroc, Marsa Maroc (IoT).
+RÉPERTOIRE DES 9 PROJETS PHARE DE MOHAMMED (À CONNECTER DIRECTEMENT AVEC LE DOMAINE DE L'ENTREPRISE CIBLE) :
+1. Drone Quadricoptère d'Inspection HT : Châssis carbone usiné CNC, avionique ArduPilot/Pixhawk, détection d'anomalies isolateurs et points chauds par vision IA YOLOv8 en temps réel.
+2. Projet Tawfir (Distribution d'Eau Intelligente & IoT) : Système embarqué ESP32/STM32, détection prédictive de micro-fuites invisibles sous pression, transmission LoRaWAN.
+3. Flotte Multi-Robots Autonomes & Plateforme ADAS : Communication maillée ESP-NOW FreeRTOS, asservissement PID, capteurs ToF/ultrasons et évitement dynamique d'obstacles.
+4. SkyPharma (Robot Cartésien H-Bot de Pharmacie) : Contrôle-commande temps réel, indexation et dispensation automatisée de médicaments, IHM Web Python/SQLite.
+5. Bras Manipulateur Robotisé 6-DOF : Modélisation SolidWorks, cinématique inverse (IK), asservissement multiaxe temps réel sur microcontrôleur STM32.
+6. Robot Suiveur de Ligne Haute Vitesse : Barrette optique, asservissement PID ultra-rapide sur STM32 et régulation de trajectoire dynamique.
+7. Prototype Robot Humanoïde Bipède : Équilibrage dynamique, centrale inertielle IMU, filtrage Kalman et algorithmes de marche bipède.
+8. Banc d'Essai Logique Séquentielle & Automatisme : Schémas de puissance et commande, relayage de sécurité et pilotage moteurs industriels.
+9. Drone FPV Freestyle & Long-Range 7 pouces : Électronique de puissance BLDC, filtrage PID gyroscopique Betaflight/INAV.
+10. Expériences Industrielles Majeures : Groupe OCP (supervision SCADA Poste MT, M580, Ignition), PAYPER PROD (télépilotage et inspection drone HT), Marsa Maroc (IoT industriel portuaire).
 
 DIRECTIVES DE RÉDACTION FLUIDE & HUMAINE :
 1. ANALYSE DE L'ENTREPRISE : Comprends ce que fait la société destinataire (robotique, drones, aéronautique, énergie, automatisme, logiciel, etc.). Crée un pont naturel et sincère entre leurs défis techniques et les projets concrets de Mohammed.
