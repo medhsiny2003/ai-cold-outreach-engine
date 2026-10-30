@@ -395,8 +395,7 @@ if "profile" not in st.session_state:
     st.session_state.profile = load_profile()
 if "smtp" not in st.session_state or not getattr(st.session_state.smtp, "app_password", None):
     st.session_state.smtp = load_smtp_settings()
-if "llm" not in st.session_state or not getattr(st.session_state.llm, "api_key", None):
-    st.session_state.llm = load_llm_settings()
+st.session_state.llm = load_llm_settings()
 
 profile = st.session_state.profile
 smtp = st.session_state.smtp
@@ -1098,7 +1097,7 @@ with tab3:
             index=["gemini", "openai", "groq", "deepseek", "ollama", "openrouter"].index(llm.provider) if llm.provider in ["gemini", "openai", "groq", "deepseek", "ollama", "openrouter"] else 0
         )
         if provider_choice == "gemini":
-            model_options = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-pro", "gemini-1.5-flash"]
+            model_options = ["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"]
         elif provider_choice == "openai":
             model_options = ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"]
         elif provider_choice == "groq":
@@ -1377,9 +1376,20 @@ TON COMPORTEMENT DANS LE CHAT :
 
                 async def run_copilot_turn():
                     from services.llm_service import call_gemini_api
+                    # Resilient API key resolution (Session -> DB -> Env -> Secrets)
+                    active_key = (llm.api_key or "").strip()
+                    if not active_key:
+                        from services.storage_service import load_llm_settings
+                        active_key = (load_llm_settings().api_key or "").strip()
+                    if not active_key:
+                        active_key = os.getenv("GEMINI_API_KEY", "").strip()
+                    if not active_key:
+                        raise ValueError("Aucune clé API Gemini trouvée. Veuillez renseigner votre clé dans l'onglet Paramètres.")
+
+                    active_model = llm.model_name or "gemini-3.5-flash"
                     return await call_gemini_api(
-                        api_key=llm.api_key,
-                        model_name=llm.model_name or "gemini-3.5-flash",
+                        api_key=active_key,
+                        model_name=active_model,
                         system_prompt=copilot_system_prompt,
                         user_prompt=f"HISTORIQUE DE LA CONVERSATION :\n{chat_history_text}\n\nNOUVELLE DEMANDE DE MOHAMMED :\n{user_chat_input}",
                         temperature=0.7
