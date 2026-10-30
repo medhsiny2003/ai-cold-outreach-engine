@@ -294,13 +294,11 @@ DIRECTIVES DE RÉDACTION FLUIDE & HUMAINE :
    - CEO / Fondateur / Dirigeant : Parle de sa vision d'entreprise, montre une curiosité sincère pour leurs défis, sois direct, dynamique et demande un regard d'expert sur son portfolio.
    - RH / Recruteur / Talent : Sois limpide sur les dates (6 mois dès Janvier 2027), les compétences clés et l'opérationnalité immédiate.
    - Ingénieur / R&D / Lead Tech : Parle de pair à pair technique, mentionne des technologies précises et sollicite un retour d'expérience.
-3. OBJET D'EMAIL PROFESSIONNEL (RÈGLE STRICTE) :
-   - INTERDICTION ABSOLUE : Ne JAMAIS utiliser "Your work at..." ou "Votre parcours chez...". Ces tournures sont proscrites.
-   - Utilise toujours un objet professionnel valorisant l'élève-ingénieur et le stage PFE, ou le domaine technique :
-     * "Candidature Stage PFE – [Entreprise] – Mohammed HSINY"
-     * "Candidature PFE Ingénieur : Systèmes Embarqués & Vision IA – [Entreprise]"
-     * "Centrale Solaire & Réseaux MT – Candidature PFE chez [Entreprise]"
-     * "Application – 6-Month Engineering Internship (PFE) – [Company] – Mohammed HSINY"
+3. FORMAT STRICT DE L'OBJET :
+   - L'objet DOIT IMPÉRATIVEMENT être formulé ainsi :
+     * En Français : "Candidature Stage PFE – [Entreprise] – Mohammed HSINY"
+     * En Anglais : "Application – 6-Month Graduation Internship (PFE) – [Company] – Mohammed HSINY"
+   - Respecte strictement ce titre clair, direct et valorisant pour l'ingénieur.
 
 4. FLUIDITÉ DU TEXTE :
    - Français vivant, énergique et humble, sans clichés ni flagornerie.

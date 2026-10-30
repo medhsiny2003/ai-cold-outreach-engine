@@ -438,8 +438,12 @@ async def generate_email_for_contact(
         subject = parsed.get("subject", "").strip()
         body = parsed.get("body_plain_text", parsed.get("body", "")).strip()
         
-        if not subject or not body:
-            raise ValueError("Parsed JSON missing 'subject' or 'body_plain_text'")
+        comp_name = (contact.get("company") or contact.get("entreprise") or "votre entreprise").strip()
+        if not subject or any(bad in subject.lower() for bad in ["your work", "votre parcours", "your vision", "votre vision"]):
+            subject = f"Candidature Stage PFE – {comp_name} – Mohammed HSINY" if language == "fr" else f"Application – 6-Month Graduation Internship (PFE) – {comp_name} – Mohammed HSINY"
+            
+        if not body:
+            raise ValueError("Parsed JSON missing 'body_plain_text'")
             
         return GeneratedEmail(subject=subject, body=body, language=language)
         
@@ -616,8 +620,12 @@ async def generate_email_from_template(
         subject = parsed.get("subject", "").strip()
         body = parsed.get("body_plain_text", parsed.get("body", "")).strip()
         
-        if not subject or not body:
-            raise ValueError("Parsed JSON missing 'subject' or 'body_plain_text'")
+        comp_name = (contact.get("company") or contact.get("entreprise") or "votre entreprise").strip()
+        if not subject or any(bad in subject.lower() for bad in ["your work", "votre parcours", "your vision", "votre vision"]):
+            subject = f"Candidature Stage PFE – {comp_name} – Mohammed HSINY" if language == "fr" else f"Application – 6-Month Graduation Internship (PFE) – {comp_name} – Mohammed HSINY"
+            
+        if not body:
+            raise ValueError("Parsed JSON missing 'body_plain_text'")
             
         return GeneratedEmail(subject=subject, body=body, language=language)
     except Exception as e:
