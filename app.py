@@ -1245,12 +1245,19 @@ Mohammed HSINY
     
     with col_obj2:
         if "Format d'Objet Fixe" in subject_mode:
+            current_fixed = st.session_state.get("studio_fixed_subject", "Candidature Stage PFE – [Entreprise] – Mohammed HSINY")
+            if any(b in current_fixed.lower() for b in ["your work", "votre parcours", "your vision", "votre vision"]):
+                current_fixed = "Candidature Stage PFE – [Entreprise] – Mohammed HSINY"
+                st.session_state["studio_fixed_subject"] = current_fixed
+
             studio_subject_pattern = st.text_input(
                 "Modèle d'objet exact (balises : [Entreprise], [Prénom], [Nom], [Poste]) :",
-                value=st.session_state.get("studio_fixed_subject", "Candidature Stage PFE – [Entreprise] – Mohammed HSINY"),
+                value=current_fixed,
                 key="studio_fixed_subject_input",
                 help="Exemple : Candidature Stage PFE – [Entreprise] – Mohammed HSINY"
             )
+            if any(b in studio_subject_pattern.lower() for b in ["your work", "votre parcours", "your vision", "votre vision"]):
+                studio_subject_pattern = "Candidature Stage PFE – [Entreprise] – Mohammed HSINY"
             st.session_state["studio_fixed_subject"] = studio_subject_pattern
             st.caption("💡 Aperçu : *Candidature Stage PFE – Thales – Mohammed HSINY*")
             
@@ -1345,18 +1352,30 @@ Mohammed HSINY
                     )
                 try:
                     res_test = asyncio.run(test_gen())
-                    active_pattern = (
-                        st.session_state.get("studio_fixed_subject_input") or
-                        st.session_state.get("studio_fixed_subject") or
-                        "Candidature Stage PFE – [Entreprise] – Mohammed HSINY"
-                    ).strip()
-                    final_subj = substitute_placeholders(
-                        text=active_pattern,
-                        name=target_test_contact.get("name", ""),
-                        company=target_test_contact.get("company", ""),
-                        role=target_test_contact.get("role", ""),
-                        language=res_test.language
-                    )
+                    chosen_mode = st.session_state.get("studio_subject_mode", subject_mode)
+                    if "Format d'Objet Fixe" in chosen_mode or "Fixe" in chosen_mode:
+                        active_pattern = (
+                            st.session_state.get("studio_fixed_subject_input") or
+                            st.session_state.get("studio_fixed_subject") or
+                            "Candidature Stage PFE – [Entreprise] – Mohammed HSINY"
+                        ).strip()
+                        if any(b in active_pattern.lower() for b in ["your work", "votre parcours", "your vision", "votre vision"]):
+                            active_pattern = "Candidature Stage PFE – [Entreprise] – Mohammed HSINY"
+                            st.session_state["studio_fixed_subject"] = active_pattern
+                        final_subj = substitute_placeholders(
+                            text=active_pattern,
+                            name=target_test_contact.get("name", ""),
+                            company=target_test_contact.get("company", ""),
+                            role=target_test_contact.get("role", ""),
+                            language=res_test.language
+                        )
+                    else:
+                        final_subj = res_test.subject
+
+                    if not final_subj or any(b in final_subj.lower() for b in ["your work", "votre parcours", "your vision", "votre vision"]):
+                        comp_clean = target_test_contact.get("company") or "[Entreprise]"
+                        final_subj = f"Candidature Stage PFE – {comp_clean} – Mohammed HSINY" if res_test.language == "fr" else f"Internship Application (PFE) – {comp_clean} – Mohammed HSINY"
+
                     st.session_state["studio_test_res_subject"] = final_subj
                     st.session_state["studio_test_res_body"] = res_test.body
                 except Exception as ex:
@@ -1440,6 +1459,9 @@ Mohammed HSINY
                             "Candidature Stage PFE – [Entreprise] – Mohammed HSINY"
                         ).strip()
 
+                        if any(b in active_pattern.lower() for b in ["your work", "votre parcours", "your vision", "votre vision"]):
+                            active_pattern = "Candidature Stage PFE – [Entreprise] – Mohammed HSINY"
+
                         if "Format d'Objet Fixe" in active_subj_mode or "Fixe" in active_subj_mode:
                             final_subject = substitute_placeholders(
                                 text=active_pattern,
@@ -1451,6 +1473,10 @@ Mohammed HSINY
                             contact["subject"] = final_subject
                         else:
                             contact["subject"] = res.subject
+
+                        if not contact.get("subject") or any(b in contact["subject"].lower() for b in ["your work", "votre parcours", "your vision", "votre vision"]):
+                            comp_clean = contact.get("company") or contact.get("entreprise") or "[Entreprise]"
+                            contact["subject"] = f"Candidature Stage PFE – {comp_clean} – Mohammed HSINY" if res.language == "fr" else f"Internship Application (PFE) – {comp_clean} – Mohammed HSINY"
                         contact["body"] = res.body
                         contact["language"] = res.language
                         contact["status"] = "generated"
