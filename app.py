@@ -134,6 +134,7 @@ except ImportError:
         return adapt_template_offline(template_text, contact, profile, forced_lang or "fr")
 
 from services.email_sender import (
+    sanitize_email_body_for_deliverability,
     test_smtp_connection, send_single_email, send_batch_emails,
     build_professional_html, LOGO_PATH
 )
@@ -1201,7 +1202,7 @@ Je me permets de vous contacter car je suis avec grand intérêt les innovations
 
 Seriez-vous ouvert à un bref échange de 5 à 10 minutes la semaine prochaine pour discuter de vos besoins actuels et voir comment je pourrais contribuer aux projets de [Entreprise] ?
 
-Vous pouvez également consulter mon portfolio technique en ligne : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
+Mon CV ainsi que mon dossier de projets d'ingénierie sont joints à ce message pour votre consultation.
 
 Bien cordialement,
 Mohammed HSINY
@@ -1261,6 +1262,18 @@ Mohammed HSINY
             st.session_state["studio_fixed_subject"] = studio_subject_pattern
             st.caption("💡 Aperçu : *Candidature Stage PFE – Thales – Mohammed HSINY*")
             
+            if st.button("🧹 Nettoyer TOUS les Emails de la base (Supprimer liens & mentions club pour délivrabilité max)", key="btn_clean_all_emails_antispam"):
+                all_cts = get_all_contacts()
+                up_cnt = 0
+                for c in all_cts:
+                    if c.get("body"):
+                        c["body"] = sanitize_email_body_for_deliverability(c["body"])
+                    save_or_update_contact(c)
+                    up_cnt += 1
+                st.success(f"🎉 Les emails des {up_cnt} contacts ont été nettoyés (Zéro lien, Zéro mention club, délivrabilité maximale) !")
+                time.sleep(1.0)
+                st.rerun()
+
             if st.button("⚡ Remplacer l'Objet de TOUS les contacts de la base par ce format", key="btn_apply_obj_to_all_db"):
                 all_cts = get_all_contacts()
                 up_cnt = 0
@@ -1332,7 +1345,7 @@ Mohammed HSINY
 
         live_user_order = st.text_area(
             "Votre ordre ou consigne pour l'IA :",
-            value=st.session_state.get("studio_live_prompt", "Essaie de faire un email orienté vers l'innovation mécatronique, en citant mon robot ASRS SkyPharma et mon rôle d'Ex-Président de RoboThings."),
+            value=st.session_state.get("studio_live_prompt", "Essaie de faire un email orienté vers l'innovation mécatronique, en citant mon robot ASRS SkyPharma et mon statut d'élève-ingénieur en dernière année."),
             height=80,
             key="studio_live_order_area"
         )
@@ -1548,7 +1561,7 @@ with tab_copilot:
         st.session_state.copilot_messages = [
             {
                 "role": "assistant",
-                "content": "Bonjour Mohammed ! ⚡ Je suis ton Copilote IA pour ta recherche de stage PFE (Dernière Année Génie Électrique & Contrôle Industriel à la FSTM).\n\nJe maîtrise l'intégralité de ton profil :\n- ☀️ **Centrale Solaire PV 1 MW** (calpinage, onduleurs, postes MT/BT, PVsyst)\n- 🛸 **Drone d'Inspection HT** (YOLOv8 vision IA, ArduPilot, carbone CNC)\n- 💊 **Robot ASRS SkyPharma** (cinématique cartésienne H-Bot, SQLite/Python)\n- 💧 **Projet Tawfir IoT** & Flotte Multi-Robots ADAS\n- 🏆 **Ex-Président du Club RoboThings (FSTM)** & Lauréat de 3 prix nationaux de robotique\n- 🏭 Stages OCP (Poste MT/M580), PAYPER PROD, Marsa Maroc, Ciments du Maroc\n- 🌐 [Portfolio interactif en ligne](https://portfolio-mohammed-hsiny-ux7z.vercel.app/)\n\nSur quelle entreprise ou quel projet veux-tu que nous travaillions ?"
+                "content": "Bonjour Mohammed ! ⚡ Je suis ton Copilote IA pour ta recherche de stage PFE (Dernière Année Génie Électrique & Contrôle Industriel à la FSTM).\n\nJe maîtrise l'intégralité de ton profil :\n- ☀️ **Centrale Solaire PV 1 MW** (calpinage, onduleurs, postes MT/BT, PVsyst)\n- 🛸 **Drone d'Inspection HT** (YOLOv8 vision IA, ArduPilot, carbone CNC)\n- 💊 **Robot ASRS SkyPharma** (cinématique cartésienne H-Bot, SQLite/Python)\n- 💧 **Projet Tawfir IoT** & Flotte Multi-Robots ADAS\n- 🏆 **Lauréat de 3 prix nationaux de robotique** (International Summer School, ENSA, EMI)\n- 🏭 Stages OCP (Poste MT/M580), PAYPER PROD, Marsa Maroc, Ciments du Maroc\n- 🌐 [Portfolio interactif en ligne](https://portfolio-mohammed-hsiny-ux7z.vercel.app/)\n\nSur quelle entreprise ou quel projet veux-tu que nous travaillions ?"
             }
         ]
 
@@ -1573,7 +1586,6 @@ with tab_copilot:
                 copilot_system_prompt = """Tu es le Copilote IA personnel et mentor expert en cold outreach de Mohammed HSINY.
 Mohammed est élève-ingénieur en dernière année en Génie Électrique & Contrôle Industriel (Final-Year Electrical Engineering Student) à la Faculté des Sciences et Techniques de Mohammedia (FSTM).
 Il recherche un stage PFE de 6 mois à partir de Janvier 2027. Mobilité internationale totale.
-Portfolio en ligne : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
 
 RÉPERTOIRE DES COMPÉTENCES & PROJETS MAJEURS DE MOHAMMED :
 1. Centrale Solaire Photovoltaïque 1 MW : Étude technico-économique et dimensionnement complet d'une centrale solaire PV raccordée MT/BT, calpinage PVsyst, bilans de puissance, choix onduleurs et modélisation des pertes.
@@ -1586,10 +1598,11 @@ RÉPERTOIRE DES COMPÉTENCES & PROJETS MAJEURS DE MOHAMMED :
 8. Drone FPV Long-Range 7 pouces : Électronique ESC/BLDC, filtrage Betaflight/INAV.
 9. Automatisme & Énergie Industrielle : Groupe OCP (supervision SCADA Poste MT, M580, Ignition, Sepam 80), PAYPER PROD, Marsa Maroc, Ciments du Maroc.
 10. Leadership & Compétitions :
-    - Ex-Président & Team Leader du Club RoboThings (FSTM). (Préciser Ex-Président ou Ancien Président, pas de présidence en cours).
-    - 1er Prix International Summer School (ENSEM / FSTM / ENSAO / FSBM).
+        - 1er Prix International Summer School (ENSEM / FSTM / ENSAO / FSBM).
     - 2e Prix Compétition Nationale de Robotique (ENSA Khouribga / ENIM Rabat).
     - 3e Prix Compétition Nationale de Robotique (EMI Rabat / ENSA El Jadida).
+
+RÈGLE ANTI-SPAM ABSOLUE (ZÉRO LIEN) : Ne JAMAIS inclure d'URL ni de lien web dans les emails. Supprimer toute mention d'ex-président ou de club de robotique. Présenter Mohammed STRICTEMENT comme élève-ingénieur en dernière année en Génie Électrique (Final-Year Electrical Engineering Student).
 
 DIRECTIVES POUR LE COPILOTE :
 - Sois réactif aux ordres de Mohammed : s'il te demande de modifier, raccourcir, changer de ton ou orienter l'argumentation, applique immédiatement ses directives.
@@ -1882,7 +1895,7 @@ with tab4:
                 edit_body = st.text_area("Corps du message", value=initial_body, height=350, key=f"body_{current_contact['id']}")
                 
                 if edit_body:
-                    with st.expander("👁️ Prévisualiser le Rendu Email Réel (Design HTML & Signature RoboThings)", expanded=False):
+                    with st.expander("👁️ Prévisualiser le Rendu Email Réel (Design HTML & Signature Pro Épurée)", expanded=False):
                         html_preview = build_professional_html(
                             body_text=edit_body,
                             profile=profile,
@@ -2047,13 +2060,11 @@ J'espère que vous allez bien.
 
 Je suis étudiant en dernière année d'ingénierie en Génie Électrique à la FST Mohammedia, passionné par les systèmes embarqués, la robotique et les drones. Je suis basé au Maroc et je prépare actuellement mon stage de fin d'études (PFE) de 6 mois à partir de janvier 2027.
 
-Je suis très motivé par l'idée de rejoindre {comp_disp} et je suis sincèrement inspiré par vos projets et votre expertise dans le domaine.
+Je suis très motivé par l'idée de rejoindre {comp_disp} et je suis sincèrement intéressé par vos projets innovants et votre expertise technique.
 
-Je me permets de vous contacter pour savoir s'il y aurait des opportunités de stage au sein de votre équipe. Je vous joins mon CV ainsi que mon portfolio pour plus de détails.
+Je me permets de vous contacter pour savoir s'il y aurait des opportunités de stage au sein de votre équipe. Mon CV ainsi que mon dossier de projets d'ingénierie sont joints à ce message pour votre consultation.
 
-https://portfolio-mohammed-hsiny-ux7z.vercel.app/
-
-Merci d'avance pour votre temps.
+Merci d'avance pour votre temps et votre considération.
 
 Bien cordialement,"""
         else:
@@ -2065,9 +2076,7 @@ I am a final-year Electrical Engineering student at FSTM, passionate about embed
 
 I am genuinely motivated by the prospect of contributing to {comp_disp} and deeply inspired by your innovative engineering projects.
 
-I would be honored to explore internship opportunities within your team. I have attached my resume and project portfolio for your review.
-
-https://portfolio-mohammed-hsiny-ux7z.vercel.app/
+I would be honored to explore internship opportunities within your team. My resume and engineering project dossier are attached to this message for your review.
 
 Thank you very much for your time and consideration.
 
@@ -2154,12 +2163,12 @@ Best regards,"""
         st.markdown("##### 👁️ 5. Aperçu Réel du Rendu HTML / CSS")
         st.caption("Voici le rendu exact que recevra votre destinataire dans sa boîte mail :")
         
-        # Build professional HTML
+        # Build professional clean HTML (Zero Links, Zero Spam Triggers)
         html_rendered = build_professional_html(
             body_text=final_preview_body,
             profile=profile,
             language=man_lang,
-            include_logo=True
+            include_logo=False
         )
         st.components.v1.html(html_rendered, height=480, scrolling=True)
 
@@ -2199,12 +2208,13 @@ Best regards,"""
             if man_att_pf and pf_pdf_p.is_file():
                 man_attachments.append(str(pf_pdf_p))
 
-            with st.spinner(f"Expédition de l'email avec design HTML vers {man_email}..."):
+            clean_manual_body = sanitize_email_body_for_deliverability(final_preview_body)
+            with st.spinner(f"Expédition de l'email avec design épuré vers {man_email}..."):
                 res_send = send_single_email(
                     settings=smtp,
                     recipient_email=man_email.strip(),
                     subject=final_preview_subj.strip(),
-                    body_text=final_preview_body,
+                    body_text=clean_manual_body,
                     attachment_paths=man_attachments,
                     profile=profile,
                     language=man_lang

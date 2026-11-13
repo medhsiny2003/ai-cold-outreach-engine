@@ -268,12 +268,11 @@ PROFIL D'INGÉNIEUR DE MOHAMMED HSINY :
   * Systèmes Embarqués : STM32, ESP32, FreeRTOS, C/C++, Edge AI, projet IoT Tawfir (détection acoustique de fuites invisibles).
   * Automatisme & SCADA : Automates Schneider Modicon M580, Siemens TIA Portal, SCADA Ignition, relais Sepam 80, Modbus TCP.
 - Leadership & Distinctions de Compétitions :
-  * Ex-Président & Team Leader du Club Robotique RoboThings (FSTM) : leadership d'équipe d'ingénieurs, conduite de projets mécatroniques et organisation d'événements.
-  * 1er Prix International Summer School (ENSEM / FSTM / ENSAO / FSBM).
-  * 2e Prix Compétition Nationale de Robotique (ENSA Khouribga / ENIM Rabat).
-  * 3e Prix Compétition Nationale de Robotique (EMI Rabat / ENSA El Jadida).
-- NUANCE IMPORTANTE : Mohammed n'est plus le président en exercice du club. Ne pas écrire "Président actuel". Présenter Mohammed comme élève-ingénieur en dernière année, et mentionner son rôle prestigieux d'« Ex-Président du Club RoboThings » ou ses prix de compétitions lorsque cela démontre leadership et excellence technique.
-- Portfolio technique en ligne : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
+  * 1er Prix International Summer School (ENSEM / FSTM / ENSAO / FSBM) – Innovation technologique & projets émergents.
+  * 2e Prix Compétition Nationale de Robotique (ENSA Khouribga / ENIM Rabat) – Systèmes autonomes & navigation.
+  * 3e Prix Compétition Nationale de Robotique (EMI Rabat / ENSA El Jadida) – Défis mécatroniques de haute précision.
+- RÈGLE STRICTE SUR LE STATUT : Présenter Mohammed STRICTEMENT comme élève-ingénieur en dernière année en Génie Électrique (Final-Year Electrical Engineering Student). Ne JAMAIS mentionner d'ex-présidence ou de club de robotique.
+- RÈGLE ANTI-SPAM ABSOLUE (ZÉRO LIEN) : NE JAMAIS INCLURE DE LIEN WEB NI D'URL (aucun lien https://, aucun lien de portfolio ou lien cliquable dans le texte) afin de garantir une délivrabilité maximale à 100% dans la boîte de réception principale et d'éviter les filtres anti-spam d'entreprise. Mentionner simplement que le CV et le dossier de projets sont joints au message.
 - Disponibilité : Stage PFE de 6 mois à partir de Janvier 2027. Mobilité internationale totale.
 
 RÉPERTOIRE COMPLET DES PROJETS DE MOHAMMED (À CONNECTER PERTINEMMENT SELON L'ENTREPRISE CIBLE) :
@@ -303,7 +302,7 @@ DIRECTIVES DE RÉDACTION FLUIDE & HUMAINE :
 4. FLUIDITÉ DU TEXTE :
    - Français vivant, énergique et humble, sans clichés ni flagornerie.
    - Paragraphes courts (2-3 lignes).
-   - Intègre naturellement le lien vers le portfolio interactif : [Explorer mon Portfolio Interactif ↗](https://portfolio-mohammed-hsiny-ux7z.vercel.app/)
+   - ZÉRO LIEN DANS LE TEXTE (Délivrabilité Max) : N'ajoute AUCUN lien hypertexte ni URL web. Indique simplement que le CV et le dossier de projets sont joints au message.
    - Clôture chaleureuse avec "Bien cordialement,".
 
 FORMAT DE SORTIE (JSON STRICT) :
@@ -409,6 +408,7 @@ Adapter intelligemment cet email de référence pour CHAQUE destinataire cible :
    - Si le contact est un **Ingénieur / Technique / R&D** : adapter le message pour valoriser son parcours technique et demander son avis d'ingénieur/expert.
 4. **Thématique & Activité** : Adapter les mentions techniques selon le secteur d'activité réel de l'entreprise (Drones, Solaire, Automatisme, Systèmes Embarqués, Génie Électrique).
 5. **Propreté** : Aucun crochet résiduel `[...]`, aucun doublon de phrase.
+6. **Délivrabilité Maximale (Anti-Spam)** : Ne JAMAIS inclure de lien web, ni d'URL (aucun https://). Supprimer toute mention d'ex-président ou de club de robotique. Présenter Mohammed strictement comme élève-ingénieur en dernière année (Final-Year Engineering Student).
 
 FORMAT DE SORTIE (JSON STRICT OBLIGATOIRE) :
 ```json

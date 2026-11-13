@@ -1,3 +1,4 @@
+import re
 import smtplib
 import ssl
 import socket
@@ -79,20 +80,59 @@ def test_smtp_connection(settings: SMTPSettings) -> Dict[str, Any]:
         
     return {"success": False, "message": f"Échec de connexion SMTP : {'; '.join(errors)}"}
 
+def sanitize_email_body_for_deliverability(text: str) -> str:
+    """
+    Supprime tous les liens URL, liens Markdown et mentions de club/ex-présidence
+    pour garantir une délivrabilité maximale (Zéro SPAM) et positionner Mohammed
+    strictement comme élève-ingénieur en dernière année (Final-Year Engineering Student).
+    """
+    if not text:
+        return ""
+        
+    # 1. Supprimer les boutons ou ancres de portfolio markdown [Explorer mon Portfolio...](url)
+    text = re.sub(r'\[(?:Explorer|Explore|Consulter|Voir)[^\]]*\]\([^\)]+\)', '', text, flags=re.IGNORECASE)
+    # Supprimer les autres liens markdown [Texte](URL) en ne gardant que Texte
+    text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+    
+    # 2. Supprimer toute URL brute (http://, https://)
+    text = re.sub(r'https?://[^\s<>"]+', '', text, flags=re.IGNORECASE)
+    
+    # 3. Supprimer toute mention de club ou d'ex-présidence
+    text = re.sub(r'(?:ex-)?président\s+(?:et\s+team\s+leader\s+)?du\s+club\s+(?:robotique\s+)?robothings[^\n,.]*', 'élève-ingénieur en dernière année', text, flags=re.IGNORECASE)
+    text = re.sub(r'(?:ex-)?president\s+(?:and\s+team\s+leader\s+)?of\s+(?:the\s+)?(?:robotics\s+club\s+)?robothings[^\n,.]*', 'final-year engineering student', text, flags=re.IGNORECASE)
+    text = re.sub(r'\b(?:ex-)?président\s+du\s+club\b', 'élève-ingénieur en dernière année', text, flags=re.IGNORECASE)
+    text = re.sub(r'\b(?:ex-)?president\s+of\s+the\s+club\b', 'final-year student', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bRoboThings\b', 'Robotique', text, flags=re.IGNORECASE)
+    text = re.sub(r'(?:en\s+tant\s+qu\'?|mon\s+rôle\s+d\'?)ex-?président[^\n,.]*', "élève-ingénieur en dernière année", text, flags=re.IGNORECASE)
+    text = re.sub(r'(?:as\s+)?(?:ex-)?president\s+of[^\n,.]*', "final-year engineering student", text, flags=re.IGNORECASE)
+
+    # 4. Nettoyer les lignes blanches consécutives
+    lines = [l.strip() for l in text.split("\n")]
+    cleaned = []
+    prev_empty = False
+    for l in lines:
+        if not l:
+            if not prev_empty:
+                cleaned.append("")
+                prev_empty = True
+        else:
+            cleaned.append(l)
+            prev_empty = False
+            
+    return "\n".join(cleaned).strip()
+
 def build_professional_html(
     body_text: str,
     profile: CandidateProfile,
     language: str = "fr",
-    include_logo: bool = True
+    include_logo: bool = False
 ) -> str:
-    """Generates an executive, highly polished HTML email with modern signature and embedded logo."""
-    lines = body_text.strip().split("\n")
+    """Génère un email HTML professionnel épuré, sans liens URL, sans logo ni badge club (100% Anti-Spam)."""
+    clean_text = sanitize_email_body_for_deliverability(body_text)
+    lines = clean_text.split("\n")
     html_paragraphs = []
     in_list = False
-    
     is_english = (language == "en")
-    
-    btn_text = "🌐 Explorer mon Portfolio Interactif ↗" if not is_english else "🌐 Explore My Interactive Portfolio ↗"
     
     for line in lines:
         stripped = line.strip()
@@ -113,18 +153,8 @@ def build_professional_html(
                 html_paragraphs.append("</ul>")
                 in_list = False
                 
-            # If line mentions portfolio URL, render as high-impact centered CTA button
-            if "portfolio-mohammed-hsiny" in stripped:
-                html_paragraphs.append(f'''
-                <div style="margin: 20px 0; text-align: center;">
-                    <a href="{profile.portfolio_url}" target="_blank" style="display: inline-block; background-color: #0b5ed7; color: #ffffff; text-decoration: none; padding: 11px 24px; border-radius: 6px; font-weight: 600; font-size: 14px; letter-spacing: 0.2px; box-shadow: 0 2px 6px rgba(11,94,215,0.25);">
-                        {btn_text}
-                    </a>
-                </div>
-                ''')
-            elif stripped.startswith("Bien cordialement") or stripped.startswith("Best regards") or stripped.startswith("Cordialement") or stripped.startswith("Regards"):
+            if stripped.startswith("Bien cordialement") or stripped.startswith("Best regards") or stripped.startswith("Cordialement") or stripped.startswith("Regards"):
                 html_paragraphs.append(f'<p style="margin: 18px 0 6px 0; color: #2d3748; font-weight: 500; font-size: 14.5px;">{stripped}</p>')
-                # Stop body text here to let the rich signature render cleanly
                 break
             else:
                 html_paragraphs.append(f'<p style="margin: 0 0 12px 0; color: #2d3748; line-height: 1.65; font-size: 14.5px;">{stripped}</p>')
@@ -134,34 +164,18 @@ def build_professional_html(
         
     formatted_body = "\n".join(html_paragraphs)
     
-    # Localized texts for signature
     if is_english:
         title_text = "Final-Year Electrical Engineering Student"
         school_text = "Faculty of Sciences and Technologies Mohammedia (FSTM)"
         phone_label = "Phone"
         email_label = "Email"
-        portfolio_label = "Online Portfolio"
-        linkedin_label = "LinkedIn"
-        badge_text = "🏆 Ex-President RoboThings • Robotics Competition Winner"
-        attachment_notice = "📎 Resume (PDF) & Portfolio Dossier (PDF) attached"
+        attachment_notice = "📎 Resume (PDF) & Project Dossier (PDF) attached"
     else:
         title_text = "Élève-Ingénieur en Génie Électrique (Dernière Année)"
         school_text = "Faculté des Sciences et Techniques de Mohammedia (FSTM)"
         phone_label = "Tél"
         email_label = "Email"
-        portfolio_label = "Portfolio en ligne"
-        linkedin_label = "LinkedIn"
-        badge_text = "🏆 Ex-Président RoboThings • Lauréat Compétitions Robotiques"
-        attachment_notice = "📎 CV (PDF) & Dossier Portfolio (PDF) joints"
-
-    # Logo tag for signature footer (discreet size: 52px width, rounded)
-    logo_tag = ''
-    if include_logo and LOGO_PATH.is_file():
-        logo_tag = f'''
-        <td style="vertical-align: top; width: 62px; padding-right: 14px;">
-            <img src="cid:robothings_logo" alt="RoboThings FSTM" width="52" height="52" style="display:block; border-radius: 6px; border: 1px solid #e2e8f0; object-fit: contain; background: #ffffff; padding: 2px;" />
-        </td>
-        '''
+        attachment_notice = "📎 CV (PDF) & Dossier de Projets (PDF) joints"
 
     html_content = f"""
 <!DOCTYPE html>
@@ -174,7 +188,7 @@ def build_professional_html(
     <table cellpadding="0" cellspacing="0" border="0" style="max-width: 620px; width: 100%; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
         <tr>
             <td style="padding: 26px 28px;">
-                <!-- Email Body (NO logo at top) -->
+                <!-- Email Body (Zero Links - Maximum Deliverability) -->
                 <div style="color: #2d3748;">
                     {formatted_body}
                 </div>
@@ -184,11 +198,10 @@ def build_professional_html(
                     {attachment_notice}
                 </div>
 
-                <!-- Executive Signature Block -->
+                <!-- Clean Professional Signature (Zero Club mentions, Zero Spam Links) -->
                 <div style="padding-top: 18px; border-top: 1.5px solid #e2e8f0;">
                     <table cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
                         <tr>
-                            {logo_tag}
                             <td style="vertical-align: middle;">
                                 <div style="font-size: 16px; font-weight: 700; color: #0f172a; letter-spacing: -0.2px;">
                                     {profile.name}
@@ -199,16 +212,11 @@ def build_professional_html(
                                 <div style="font-size: 12px; color: #64748b; margin-top: 1px;">
                                     {school_text}
                                 </div>
-                                <div style="font-size: 11.5px; color: #d97706; font-weight: 600; margin-top: 3px;">
-                                    {badge_text}
-                                </div>
                                 
-                                <!-- Links & Contacts row -->
+                                <!-- Contacts row (Phone & Email only - No tracking or suspicious links) -->
                                 <div style="margin-top: 8px; font-size: 12px; color: #475569;">
-                                    <span style="display: inline-block; margin-right: 12px;">📱 {phone_label} : <a href="tel:{profile.phone}" style="color: #0284c7; text-decoration: none; font-weight: 500;">{profile.phone}</a></span>
-                                    <span style="display: inline-block; margin-right: 12px;">✉️ {email_label} : <a href="mailto:{profile.email}" style="color: #0284c7; text-decoration: none; font-weight: 500;">{profile.email}</a></span>
-                                    <span style="display: inline-block; margin-right: 12px;">🌐 <a href="{profile.portfolio_url}" style="color: #0b5ed7; font-weight: 600; text-decoration: none;">{portfolio_label}</a></span>
-                                    <span style="display: inline-block;">💼 <a href="{profile.linkedin_url}" style="color: #0077b5; font-weight: 600; text-decoration: none;">{linkedin_label}</a></span>
+                                    <span style="display: inline-block; margin-right: 14px;">📱 {phone_label} : <span style="color: #0f172a; font-weight: 500;">{profile.phone}</span></span>
+                                    <span style="display: inline-block;">✉️ {email_label} : <span style="color: #0f172a; font-weight: 500;">{profile.email}</span></span>
                                 </div>
                             </td>
                         </tr>
@@ -232,8 +240,11 @@ def create_email_message(
     profile: Optional[CandidateProfile] = None,
     language: str = "fr"
 ) -> MIMEMultipart:
-    """Constructs a rich MIME email message with HTML formatting, embedded CID logo and PDF attachments."""
+    """Constructs a clean, deliverable MIME email message without spam-triggering links or images."""
     profile_obj = profile or CandidateProfile()
+    
+    # 1. Clean body text strictly (No links, No club/ex-president mentions)
+    clean_body = sanitize_email_body_for_deliverability(body_text)
     
     # Root message is multipart/mixed to support body + attachments
     msg = MIMEMultipart("mixed")
@@ -245,27 +256,13 @@ def create_email_message(
     # Alternative part for (Plain text + HTML)
     msg_alt = MIMEMultipart("alternative")
     
-    # Plain text version
-    msg_alt.attach(MIMEText(body_text, "plain", "utf-8"))
+    # Plain text version (Clean, zero links)
+    msg_alt.attach(MIMEText(clean_body, "plain", "utf-8"))
     
-    # HTML version (embedded inside multipart/related for inline logo)
-    msg_related = MIMEMultipart("related")
-    html_body = build_professional_html(body_text, profile_obj, language=language, include_logo=True)
-    msg_related.attach(MIMEText(html_body, "html", "utf-8"))
+    # HTML version (Clean, zero links, zero CID images)
+    html_body = build_professional_html(clean_body, profile_obj, language=language, include_logo=False)
+    msg_alt.attach(MIMEText(html_body, "html", "utf-8"))
     
-    # Attach RoboThings inline logo with Content-ID for signature
-    if LOGO_PATH.is_file():
-        try:
-            with open(LOGO_PATH, "rb") as img_f:
-                img_data = img_f.read()
-                img_part = MIMEImage(img_data, _subtype="png")
-                img_part.add_header("Content-ID", "<robothings_logo>")
-                img_part.add_header("Content-Disposition", "inline", filename="robothings_logo.png")
-                msg_related.attach(img_part)
-        except Exception as e:
-            print(f"[Warning] Could not attach inline logo: {e}")
-            
-    msg_alt.attach(msg_related)
     msg.attach(msg_alt)
 
     # Attach PDF files
@@ -279,12 +276,17 @@ def create_email_message(
             path = Path(att)
             if path.is_file():
                 try:
+                    ctype, encoding = mimetypes.guess_type(str(path))
+                    if ctype is None or encoding is not None:
+                        ctype = "application/octet-stream"
+                    maintype, subtype = ctype.split("/", 1)
+                    
                     with open(path, "rb") as f:
-                        part = MIMEApplication(f.read(), _subtype="pdf")
+                        part = MIMEApplication(f.read(), _subtype=subtype)
                         part.add_header("Content-Disposition", "attachment", filename=path.name)
                         msg.attach(part)
                 except Exception as e:
-                    print(f"[Warning] Failed to attach {path.name}: {e}")
+                    print(f"[Warning] Could not attach file {path.name}: {e}")
                     
     return msg
 

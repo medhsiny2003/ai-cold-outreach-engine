@@ -1,3 +1,4 @@
+from services.email_sender import sanitize_email_body_for_deliverability
 import json
 import re
 import httpx
@@ -232,7 +233,7 @@ Je me permets de vous contacter pour bénéficier de votre regard sur mon CV et 
 
 Je me demande aussi s'il y aurait des opportunités de stage au sein de votre équipe ou dans vos services.
 
-[Explorer mon Portfolio Interactif ↗]({portfolio_url})
+Mon CV ainsi que mon dossier de projets sont joints à ce message pour votre consultation.
 
 Merci d'avance pour votre temps.
 
@@ -253,7 +254,7 @@ Je me permets de vous contacter pour savoir s'il y aurait des opportunités de s
 
 Je vous joins mon CV et mon portfolio pour plus de détails.
 
-[Explorer mon Portfolio Interactif ↗]({portfolio_url})
+Mon CV ainsi que mon dossier de projets sont joints à ce message pour votre consultation.
 
 Merci d'avance pour votre temps.
 
@@ -274,7 +275,7 @@ Je me permets de vous contacter pour bénéficier de votre regard sur mon CV et 
 
 Je me demande aussi s'il y aurait des opportunités de stage au sein de votre équipe.
 
-[Explorer mon Portfolio Interactif ↗]({portfolio_url})
+Mon CV ainsi que mon dossier de projets sont joints à ce message pour votre consultation.
 
 Merci d'avance pour votre temps.
 
@@ -296,7 +297,7 @@ I would be very grateful for your insights and valuable feedback on my projects 
 
 I was also wondering if there might be graduation internship opportunities within your teams.
 
-[Explore my Interactive Portfolio ↗]({portfolio_url})
+My resume and detailed project portfolio are attached to this email for your review.
 
 Thank you very much for your time.
 
@@ -313,7 +314,7 @@ I am very excited about {company}'s innovative projects and would love to explor
 
 I have attached my resume and portfolio dossier for your review.
 
-[Explore my Interactive Portfolio ↗]({portfolio_url})
+My resume and detailed project portfolio are attached to this email for your review.
 
 Thank you very much for your consideration.
 
@@ -332,7 +333,7 @@ I would be honored to get your expert feedback on my CV and project portfolio.
 
 I was also wondering if there might be 6-month PFE internship opportunities within your engineering team.
 
-[Explore my Interactive Portfolio ↗]({portfolio_url})
+My resume and detailed project portfolio are attached to this email for your review.
 
 Thank you very much for your time and guidance.
 
@@ -436,7 +437,7 @@ async def generate_email_for_contact(
             
         parsed = clean_json_response(raw_text)
         subject = parsed.get("subject", "").strip()
-        body = parsed.get("body_plain_text", parsed.get("body", "")).strip()
+        body = sanitize_email_body_for_deliverability(parsed.get("body_plain_text", parsed.get("body", "")).strip())
         
         comp_name = (contact.get("company") or contact.get("entreprise") or "votre entreprise").strip()
         if not subject or any(bad in subject.lower() for bad in ["your work", "votre parcours", "your vision", "votre vision"]):
@@ -618,7 +619,7 @@ async def generate_email_from_template(
             
         parsed = clean_json_response(raw_text)
         subject = parsed.get("subject", "").strip()
-        body = parsed.get("body_plain_text", parsed.get("body", "")).strip()
+        body = sanitize_email_body_for_deliverability(parsed.get("body_plain_text", parsed.get("body", "")).strip())
         
         comp_name = (contact.get("company") or contact.get("entreprise") or "votre entreprise").strip()
         if not subject or any(bad in subject.lower() for bad in ["your work", "votre parcours", "your vision", "votre vision"]):
