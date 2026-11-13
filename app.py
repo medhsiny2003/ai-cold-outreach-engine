@@ -711,6 +711,7 @@ with tab1:
             pf_hash = hash(pf_bytes)
             if st.session_state.get("_uploaded_pf_hash") != pf_hash:
                 portfolio_file.write_bytes(pf_bytes)
+                save_document_blob("Portfolio_Mohammed_HSINY.pdf", pf_bytes)
                 st.session_state["_uploaded_pf_hash"] = pf_hash
                 try:
                     profile.portfolio_pdf_path = str(portfolio_file)
@@ -718,7 +719,8 @@ with tab1:
                     pass
                 save_profile(profile)
                 st.session_state.profile = profile
-                st.toast("🎉 Portfolio PDF mis à jour et sauvegardé !", icon="✅")
+                st.toast("🎉 Portfolio PDF mis à jour et sauvegardé définitivement !", icon="✅")
+                time.sleep(0.5)
                 st.rerun()
 
 # -------------------------------------------------------------

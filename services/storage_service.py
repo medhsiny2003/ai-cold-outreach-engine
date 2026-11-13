@@ -674,12 +674,27 @@ def save_document_blob(doc_name: str, file_bytes: bytes):
         conn.commit()
 
 def restore_documents_from_db():
-    """Restores any missing or empty files in UPLOADS_DIR from SQLite app_documents."""
+    """Restores any missing or empty files in UPLOADS_DIR from SQLite app_documents, or seeds DB if empty."""
     from config import UPLOADS_DIR
     UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
     with get_db_connection() as conn:
         rows = conn.execute("SELECT doc_name, file_bytes FROM app_documents").fetchall()
-        for row in rows:
-            target_path = UPLOADS_DIR / row["doc_name"]
-            if not target_path.is_file() or target_path.stat().st_size == 0:
-                target_path.write_bytes(row["file_bytes"])
+        if rows:
+            for row in rows:
+                target_path = UPLOADS_DIR / row["doc_name"]
+                blob_bytes = row["file_bytes"]
+                # Restore or update if file missing, empty or different from DB blob
+                if not target_path.is_file() or target_path.stat().st_size != len(blob_bytes):
+                    target_path.write_bytes(blob_bytes)
+        else:
+            # Seed DB from current disk files if any exist
+            for f in UPLOADS_DIR.glob("*.pdf"):
+                if f.is_file() and f.stat().st_size > 0:
+                    conn.execute("""
+                        INSERT INTO app_documents (doc_name, file_bytes, updated_at)
+                        VALUES (?, ?, ?)
+                        ON CONFLICT(doc_name) DO UPDATE SET
+                            file_bytes = excluded.file_bytes,
+                            updated_at = excluded.updated_at
+                    """, (f.name, f.read_bytes(), time.time()))
+            conn.commit()
