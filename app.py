@@ -1696,12 +1696,25 @@ with tab4:
         with col_hdr1:
             st.info(f"📊 **Statut Global :** **{app_count}** approuvés (prêts pour l'envoi), **{gen_count}** générés par l'IA en attente de validation sur **{len(contacts)}** contacts.")
         with col_hdr2:
-            if gen_count > 0:
-                if st.button(f"⚡ Tout Approuver d'un coup ({gen_count} contacts)", type="primary", use_container_width=True, key="btn_quick_approve_all_tab4"):
-                    cnt_app = approve_all_contacts(only_generated=True)
-                    st.success(f"🎉 Les {cnt_app} contacts générés sont validés et prêts dans l'onglet '🚀 Centre d'Envoi' !")
+            col_sub_btn1, col_sub_btn2 = st.columns(2)
+            with col_sub_btn1:
+                if st.button("🧹 Nettoyer (0 Lien Anti-Spam)", key="btn_tab4_clean_antispam", use_container_width=True, help="Supprime tous les liens et mentions club pour une délivrabilité maximale"):
+                    up_cnt = 0
+                    for c in contacts:
+                        if c.get("body"):
+                            c["body"] = sanitize_email_body_for_deliverability(c["body"])
+                        save_or_update_contact(c)
+                        up_cnt += 1
+                    st.success(f"🎉 {up_cnt} contacts nettoyés !")
                     time.sleep(0.8)
                     st.rerun()
+            with col_sub_btn2:
+                if gen_count > 0:
+                    if st.button(f"⚡ Tout Approuver ({gen_count})", type="primary", use_container_width=True, key="btn_quick_approve_all_tab4"):
+                        cnt_app = approve_all_contacts(only_generated=True)
+                        st.success(f"🎉 Les {cnt_app} contacts générés sont validés et prêts dans l'onglet '🚀 Centre d'Envoi' !")
+                        time.sleep(0.8)
+                        st.rerun()
 
         # Search and Filter Toolbar
         col_flt1, col_flt2 = st.columns([3, 2])
@@ -2322,19 +2335,15 @@ with tab5:
             if not smtp.app_password:
                 st.error("Mot de passe d'application Gmail manquant ! Configurez-le dans l'onglet Paramètres.")
             else:
-                test_subj = f"Stage PFE - Systèmes Embarqués, Robotique & Drones | {profile.name}"
+                test_subj = f"Candidature Stage PFE – Test Rendu – {profile.name}"
                 test_body = f"""Bonjour,
 
 Je suis étudiant en dernière année d'ingénierie en Génie Électrique à la FST Mohammedia, passionné par les systèmes embarqués, la robotique et les drones.
 
-Je recherche un stage PFE (Projet de Fin d'Études) de 6 mois à partir de Janvier 2027.
-
-Portfolio : https://portfolio-mohammed-hsiny-ux7z.vercel.app/
+Je recherche un stage de fin d'études (PFE) de 6 mois à partir de Janvier 2027. Mon CV ainsi que mon dossier de projets d'ingénierie sont joints à ce message pour consultation.
 
 Bien cordialement,
-Mohammed HSINY
-+212 611 424 571
-mohammedhsiny2@gmail.com"""
+Mohammed HSINY"""
 
                 att_list = []
                 if cv_fr_file.is_file():
