@@ -59,6 +59,59 @@ def substitute_placeholders(
 
     return result
 
+def sanitize_email_body_for_deliverability(text: str) -> str:
+    """
+    Supprime tous les liens URL, liens Markdown et mentions de club/ex-présidence
+    pour garantir une délivrabilité maximale (Zéro SPAM) et positionner Mohammed
+    strictement comme élève-ingénieur en dernière année (Final-Year Engineering Student).
+    """
+    if not text:
+        return ""
+
+    # Supprimer les lignes orphelines invitant au portfolio / lien
+    lines = text.split("\n")
+    cleaned_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if re.search(r'^(?:(?:vous\s+pouvez\s+)?(?:également\s+|aussi\s+)?(?:explorer|consulter|visiter|voir|retrouver)\s+(?:mon\s+)?(?:portfolio|site|lien|projets)[^:\n]*:?\s*)?(?:\[[^\]]*\]\([^\)]+\)|https?://\S+)?$', stripped, re.IGNORECASE) and ('http' in stripped or 'portfolio' in stripped.lower()):
+            continue
+        if re.search(r'^(?:\[(?:Explorer|Explore|Consulter|Voir)[^\]]*\]\([^\)]+\)|https?://\S+)$', stripped, re.IGNORECASE):
+            continue
+        cleaned_lines.append(line)
+        
+    text = "\n".join(cleaned_lines)
+    
+    # 1. Supprimer les boutons ou ancres de portfolio markdown restants
+    text = re.sub(r'\[(?:Explorer|Explore|Consulter|Voir)[^\]]*\]\([^\)]+\)', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+    
+    # 2. Supprimer toute URL brute restante
+    text = re.sub(r'https?://[^\s<>"]+', '', text, flags=re.IGNORECASE)
+    
+    # 3. Supprimer toute mention de club ou d'ex-présidence
+    text = re.sub(r'(?:ex-)?président\s+(?:et\s+team\s+leader\s+)?du\s+club\s+(?:robotique\s+)?robothings[^\n,.]*', 'élève-ingénieur en dernière année', text, flags=re.IGNORECASE)
+    text = re.sub(r'(?:ex-)?president\s+(?:and\s+team\s+leader\s+)?of\s+(?:the\s+)?(?:robotics\s+club\s+)?robothings[^\n,.]*', 'final-year engineering student', text, flags=re.IGNORECASE)
+    text = re.sub(r'\b(?:ex-)?président\s+du\s+club\b', 'élève-ingénieur en dernière année', text, flags=re.IGNORECASE)
+    text = re.sub(r'\b(?:ex-)?president\s+of\s+the\s+club\b', 'final-year student', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bRoboThings\b', 'Robotique', text, flags=re.IGNORECASE)
+    text = re.sub(r'(?:en\s+tant\s+qu\'?|mon\s+rôle\s+d\'?)ex-?président[^\n,.]*', "élève-ingénieur en dernière année", text, flags=re.IGNORECASE)
+    text = re.sub(r'(?:as\s+)?(?:ex-)?president\s+of[^\n,.]*', "final-year engineering student", text, flags=re.IGNORECASE)
+
+    # 4. Nettoyer les lignes blanches consécutives
+    final_lines = []
+    prev_empty = False
+    for l in text.split("\n"):
+        s = l.strip()
+        if not s:
+            if not prev_empty:
+                final_lines.append("")
+                prev_empty = True
+        else:
+            final_lines.append(l.rstrip())
+            prev_empty = False
+            
+    return "\n".join(final_lines).strip()
+
 THEMES_CATALOG = {
     "auto": {
         "label": "🎯 Auto-détection IA Intelligente",

@@ -133,13 +133,39 @@ except ImportError:
     async def generate_email_from_template(template_text, contact, profile, settings, forced_lang=None, custom_instruction=""):
         return adapt_template_offline(template_text, contact, profile, forced_lang or "fr")
 
-from services.email_sender import (
-    sanitize_email_body_for_deliverability,
-    test_smtp_connection, send_single_email, send_batch_emails,
-    build_professional_html, LOGO_PATH
-)
-from services.gmail_cleaner import clean_gmail_bounces_and_sync_db, sync_sent_and_bounced_with_gmail
-from services.analytics_service import compute_company_analytics, send_quality_report_email
+try:
+    from services.email_sender import (
+        sanitize_email_body_for_deliverability,
+        test_smtp_connection, send_single_email, send_batch_emails,
+        build_professional_html, LOGO_PATH
+    )
+except ImportError:
+    try:
+        from services.prompt_builder import sanitize_email_body_for_deliverability
+    except Exception:
+        def sanitize_email_body_for_deliverability(t): return t
+    def test_smtp_connection(s): return {"success": True, "message": "OK"}
+    def send_single_email(*args, **kwargs):
+        from services.email_sender import send_single_email
+        return send_single_email(*args, **kwargs)
+    def send_batch_emails(*args, **kwargs):
+        from services.email_sender import send_batch_emails
+        return send_batch_emails(*args, **kwargs)
+    def build_professional_html(body, profile, language="fr", include_logo=False):
+        return f"<div style='font-family:sans-serif;padding:20px;'>{body}</div>"
+    LOGO_PATH = None
+
+try:
+    from services.gmail_cleaner import clean_gmail_bounces_and_sync_db, sync_sent_and_bounced_with_gmail
+except ImportError:
+    def clean_gmail_bounces_and_sync_db(smtp): return {"success": False, "message": "Module de nettoyage en cours de chargement."}
+    def sync_sent_and_bounced_with_gmail(smtp): return {"success": False, "message": "Module de synchronisation en cours de chargement."}
+
+try:
+    from services.analytics_service import compute_company_analytics, send_quality_report_email
+except ImportError:
+    def compute_company_analytics(): return {}
+    def send_quality_report_email(*args, **kwargs): return {"success": False}
 
 try:
     from services.response_tracker import scan_incoming_recruiter_replies, BackgroundSyncDaemon

@@ -1,10 +1,10 @@
-from services.email_sender import sanitize_email_body_for_deliverability
 import json
 import re
 import httpx
 from typing import Dict, Any, Optional
 from config import LLMSettings, CandidateProfile
 from services.prompt_builder import (
+    sanitize_email_body_for_deliverability,
     build_system_prompt,
     build_user_prompt,
     determine_language,
