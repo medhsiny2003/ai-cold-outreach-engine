@@ -36,7 +36,7 @@ COLUMN_PRIORITIES = {
     "first_name": ["first_name", "firstname", "prenom", "prénom", "first name", "prenom contact"],
     "last_name": ["last_name", "lastname", "nom de famille", "nom", "last name", "nom contact"],
     "name": ["name", "full name", "nom complet", "destinataire", "contact", "personne", "nom & prénom", "nom et prenom"],
-    "company": ["company", "entreprise", "societe", "société", "boite", "boîte", "organization", "organisation", "structure"],
+    "company": ["company", "company name", "nom entreprise", "nom de l'entreprise", "nom de la société", "entreprise", "societe", "société", "société / entreprise", "entreprise cible", "société cible", "compagnie", "boite", "boîte", "organization", "organisation", "structure", "employeur", "employer", "account", "account name", "client"],
     "role": ["job_title", "job title", "poste", "role", "rôle", "titre", "title", "position", "fonction", "job", "poste_actuel", "poste occupé", "cible recrutement stage"],
     "location": ["location", "pays", "country", "ville", "city", "localisation", "region", "domaine mail certifié"],
     "industry": ["industry", "secteur", "domaine", "field", "activite", "activité"],

@@ -24,41 +24,81 @@ def substitute_placeholders(
     role: str = "",
     language: str = "fr"
 ) -> str:
-    """Replaces all variations of placeholders ([Entreprise], {Entreprise}, {{Entreprise}}, [Prénom], {Prenom}, etc.)
-    with actual values cleanly and safely.
+    """
+    Remplace 100% des balises de façon ultra-robuste :
+    [Entreprise], {Entreprise}, {{Entreprise}}, <Entreprise>, [Nom Entreprise], [Société], [Company], etc.
+    Ainsi que [Prénom], [Nom], [Poste].
     """
     if not text:
         return ""
     
     clean_name = (name or "").strip()
-    first_name = clean_name.split()[0].capitalize() if clean_name else ("" if language == "fr" else "")
+    first_name = ""
+    if clean_name and clean_name.lower() not in ["madame, monsieur", "madame monsieur", "n/a", "none"]:
+        parts = clean_name.split()
+        first_name = parts[0].capitalize()
+        
     salutation_name = first_name if first_name else ("Madame, Monsieur" if language == "fr" else "Hiring Team")
     
     clean_company = (company or "").strip()
-    if not clean_company or clean_company.lower() in ["votre entreprise", "n/a", "none", "null"]:
+    if not clean_company or clean_company.lower() in ["votre entreprise", "n/a", "none", "null", "[entreprise]", "{entreprise}", "company"]:
         clean_company = "votre entreprise" if language == "fr" else "your company"
         
     clean_role = (role or "").strip()
     if not clean_role:
         clean_role = "Responsable" if language == "fr" else "Hiring Manager"
 
-    replacements = [
-        # Prénom / First name
-        (r"\[(?:Prénom|Prenom|First\s*Name|FirstName)\]|\{\{?(?:prenom|prénom|first_name)\}?\}", first_name if first_name else salutation_name),
-        # Nom complet / Last name
-        (r"\[(?:Nom|Nom\s+complet|Last\s*Name|LastName|Full\s*Name)\]|\{\{?(?:nom|nom_complet|last_name|full_name|name)\}?\}", clean_name if clean_name else salutation_name),
-        # Entreprise / Company / Société
-        (r"\[(?:Nom\s+de\s+l['’]entreprise|Entreprise|Société|Societe|Company|Organization|Nom\s+de\s+l['’]organisme)\]|\{\{?(?:entreprise|societe|société|company|organization)\}?\}", clean_company),
-        # Poste / Rôle / Title
-        (r"\[(?:Poste|Titre|Rôle|Role|Title|Job\s*Title)\]|\{\{?(?:poste|titre|role|rôle|title)\}?\}", clean_role),
-    ]
-
     result = text
-    for pattern, repl in replacements:
-        result = re.sub(pattern, repl, result, flags=re.IGNORECASE)
+
+    # 1. Traitement intelligent des salutations "Bonjour [Prénom]," quand le prénom est absent
+    if not first_name:
+        result = re.sub(r'^(?:Bonjour|Bonsoir)\s+\[\s*(?:Prénom|Prenom|First\s*Name)\s*\]\s*,', 'Bonjour,', result, flags=re.IGNORECASE | re.MULTILINE)
+        result = re.sub(r'^(?:Hi|Hello)\s+\[\s*(?:Prénom|Prenom|First\s*Name)\s*\]\s*,', 'Hello,', result, flags=re.IGNORECASE | re.MULTILINE)
+
+    # 2. Remplacement exhaustif des balises Entreprise / Société / Company
+    company_regexes = [
+        r'\[\s*(?:nom\s+(?:de\s+(?:l[\'’]|la\s+)?)?)?(?:entreprise|société|societe|company|organisme|organization|boîte|boite|structure)(?:\s+(?:cible|target|name))?\s*\]',
+        r'\{\{?\s*(?:nom\s+(?:de\s+(?:l[\'’]|la\s+)?)?)?(?:entreprise|société|societe|company|organisme|organization|boîte|boite|structure)(?:\s+(?:cible|target|name))?\s*\}?}',
+        r'<\s*(?:nom\s+(?:de\s+(?:l[\'’]|la\s+)?)?)?(?:entreprise|société|societe|company|organisme|organization|boîte|boite|structure)(?:\s+(?:cible|target|name))?\s*>',
+        r'%\s*(?:entreprise|company|societe|société)\s*%'
+    ]
+    for c_reg in company_regexes:
+        result = re.sub(c_reg, clean_company, result, flags=re.IGNORECASE)
+
+    # 3. Remplacement exhaustif des balises Prénom / First Name
+    firstname_regexes = [
+        r'\[\s*(?:prénom|prenom|first\s*name|firstname)\s*\]',
+        r'\{\{?\s*(?:prénom|prenom|first\s*name|firstname)\s*\}?}',
+        r'<\s*(?:prénom|prenom|first\s*name|firstname)\s*>'
+    ]
+    fn_replacement = first_name if first_name else ("" if "bonjour" in result.lower() else salutation_name)
+    for fn_reg in firstname_regexes:
+        result = re.sub(fn_reg, fn_replacement, result, flags=re.IGNORECASE)
+
+    # Nettoyage d'espaces doubles ou virgules orphelines
+    result = re.sub(r'Bonjour\s+,', 'Bonjour,', result, flags=re.IGNORECASE)
+    result = re.sub(r'Hi\s+,', 'Hello,', result, flags=re.IGNORECASE)
+    result = re.sub(r'Hello\s+,', 'Hello,', result, flags=re.IGNORECASE)
+
+    # 4. Remplacement exhaustif des balises Nom complet / Last Name
+    name_regexes = [
+        r'\[\s*(?:nom\s+complet|full\s*name|last\s*name|lastname|nom)\s*\]',
+        r'\{\{?\s*(?:nom\s+complet|full\s*name|last\s*name|lastname|nom)\s*\}?}',
+        r'<\s*(?:nom\s+complet|full\s*name|last\s*name|lastname|nom)\s*>'
+    ]
+    for n_reg in name_regexes:
+        result = re.sub(n_reg, clean_name if clean_name else salutation_name, result, flags=re.IGNORECASE)
+
+    # 5. Remplacement exhaustif des balises Poste / Titre / Role
+    role_regexes = [
+        r'\[\s*(?:poste|titre|rôle|role|title|job\s*title)\s*\]',
+        r'\{\{?\s*(?:poste|titre|rôle|role|title|job\s*title)\s*\}?}',
+        r'<\s*(?:poste|titre|rôle|role|title|job\s*title)\s*>'
+    ]
+    for r_reg in role_regexes:
+        result = re.sub(r_reg, clean_role, result, flags=re.IGNORECASE)
 
     return result
-
 def sanitize_email_body_for_deliverability(text: str) -> str:
     """
     Supprime tous les liens URL, liens Markdown et mentions de club/ex-présidence
@@ -361,7 +401,7 @@ DIRECTIVES DE RÉDACTION FLUIDE & HUMAINE :
 FORMAT DE SORTIE (JSON STRICT) :
 ```json
 {{
-  "subject": "Objet naturel, sur-mesure et attractif",
+  "subject": "Candidature Stage PFE – [Entreprise] – Mohammed HSINY",
   "body_plain_text": "Corps du message fluide, aéré et personnalisé"
 }}
 ```
@@ -416,7 +456,7 @@ Rédige l'email parfait pour {salutation_name} chez {company} en respectant stri
 FORMAT DE SORTIE JSON STRICT :
 ```json
 {{
-  "subject": "Objet selon le persona et la thématique",
+  "subject": "Candidature Stage PFE – [Société cible] – Mohammed HSINY",
   "body_plain_text": "Texte complet de l'email"
 }}
 ```
@@ -441,7 +481,7 @@ Write the perfect outreach email in English for {salutation_name} at {company} f
 JSON STRICT OUTPUT:
 ```json
 {{
-  "subject": "Persona-aligned subject line",
+  "subject": "Application – 6-Month Graduation Internship (PFE) – [Target Company] – Mohammed HSINY",
   "body_plain_text": "Full email body"
 }}
 ```
@@ -466,7 +506,7 @@ Adapter intelligemment cet email de référence pour CHAQUE destinataire cible :
 FORMAT DE SORTIE (JSON STRICT OBLIGATOIRE) :
 ```json
 {
-  "subject": "Objet adapté à l'entreprise et au persona",
+  "subject": "Candidature Stage PFE – [Entreprise] – Mohammed HSINY",
   "body_plain_text": "Le texte complet de l'email adapté"
 }
 ```
@@ -513,7 +553,7 @@ Remplace toutes les variables et personnalise les références à l'entreprise e
 FORMAT DE SORTIE JSON STRICT :
 ```json
 {{
-  "subject": "Objet de l'email adapté",
+  "subject": "Candidature Stage PFE – [Entreprise] – Mohammed HSINY",
   "body_plain_text": "Texte complet de l'email adapté"
 }}
 ```

@@ -440,7 +440,12 @@ async def generate_email_for_contact(
         body = sanitize_email_body_for_deliverability(parsed.get("body_plain_text", parsed.get("body", "")).strip())
         
         comp_name = (contact.get("company") or contact.get("entreprise") or "votre entreprise").strip()
-        if not subject or any(bad in subject.lower() for bad in ["your work", "votre parcours", "your vision", "votre vision"]):
+        bad_subject_triggers = [
+            "your work", "votre parcours", "your vision", "votre vision",
+            "student passionate", "passionné par", "passionate about",
+            "etudiant passionné", "étudiant passionné", "passionate student"
+        ]
+        if not subject or any(bad in subject.lower() for bad in bad_subject_triggers):
             subject = f"Candidature Stage PFE – {comp_name} – Mohammed HSINY" if language == "fr" else f"Application – 6-Month Graduation Internship (PFE) – {comp_name} – Mohammed HSINY"
             
         if not body:
@@ -465,7 +470,7 @@ from services.prompt_builder import (
 )
 
 def adapt_template_offline(template_text: str, contact: Dict[str, Any], profile: CandidateProfile, language: str) -> GeneratedEmail:
-    """Smart offline template adaptation replacing all variables, company references, persona blocks and placeholders."""
+    """Smart offline template adaptation with 100% guaranteed variable substitution and zero freezing."""
     if not template_text or not template_text.strip():
         return generate_fallback_template(contact, profile, language)
         
@@ -475,9 +480,9 @@ def adapt_template_offline(template_text: str, contact: Dict[str, Any], profile:
         first_name = name.split()[0].capitalize()
     salutation_name = first_name if first_name else "Madame, Monsieur"
     
-    company = (contact.get("company") or contact.get("entreprise") or contact.get("societe") or "").strip()
-    if not company or company.lower() in ["votre entreprise", "n/a", ""]:
-        company = "votre entreprise"
+    company = (contact.get("company") or contact.get("entreprise") or contact.get("societe") or contact.get("société") or "").strip()
+    if not company or company.lower() in ["votre entreprise", "n/a", "none", "null"]:
+        company = "votre entreprise" if language == "fr" else "your company"
         
     role = (contact.get("role") or contact.get("poste") or "").strip()
     industry = (contact.get("industry") or contact.get("secteur") or "").strip()
@@ -500,15 +505,15 @@ def adapt_template_offline(template_text: str, contact: Dict[str, Any], profile:
             if match and match.group(1).strip():
                 text = match.group(1).strip()
 
-    # Dynamic Variable Replacements (Supports [Entreprise], {Entreprise}, {{entreprise}}, [Prénom], etc.)
+    # Dynamic Variable Replacements on full text
     text = substitute_placeholders(text, name=name, company=company, role=role, language=language)
         
-    # Replace static greeting like "Bonjour Bruno," or "Bonjour Alexandre," with current contact's salutation
+    # Replace static greeting like "Bonjour Bruno," with current contact's salutation
     text = re.sub(r"^(?:Bonjour|Bonsoir|Hi|Hello)\s+[A-Za-zÀ-ÿ-]+,", f"Bonjour {salutation_name}," if language == 'fr' else f"Hi {salutation_name},", text, flags=re.MULTILINE)
     
-    # Replace previous static company names like "Shark Robotics" if company is different
-    if company and company.lower() not in ["shark robotics", "votre entreprise"]:
-        text = re.sub(r"\bShark\s+Robotics\b", company, text, flags=re.IGNORECASE)
+    # Replace previous static company names if company is different
+    if company and company.lower() not in ["shark robotics", "votre entreprise", "your company"]:
+        text = re.sub(r"\b(?:Shark\s+Robotics|Entreprise\s+Cible)\b", company, text, flags=re.IGNORECASE)
         
     # Extract Subject Line
     theme = detect_best_theme_for_company(company, role, industry)
@@ -522,7 +527,7 @@ def adapt_template_offline(template_text: str, contact: Dict[str, Any], profile:
             extracted_subj = re.sub(r"^(?:objet|subject)\s*:\s*", "", stripped, flags=re.IGNORECASE).strip()
             if extracted_subj:
                 extracted_subj = substitute_placeholders(extracted_subj, name=name, company=company, role=role, language=language)
-                extracted_subj = re.sub(r"\bShark\s+Robotics\b", company, extracted_subj, flags=re.IGNORECASE)
+                extracted_subj = re.sub(r"\b(?:Shark\s+Robotics|Entreprise\s+Cible)\b", company, extracted_subj, flags=re.IGNORECASE)
                 subject = extracted_subj
         elif stripped.lower() in ["text", "```", "```text", "```markdown"]:
             continue
@@ -530,6 +535,10 @@ def adapt_template_offline(template_text: str, contact: Dict[str, Any], profile:
             body_lines.append(line)
             
     body = "\n".join(body_lines).strip()
+    body = sanitize_email_body_for_deliverability(body)
+    # Guaranteed final pass for placeholders
+    body = substitute_placeholders(body, name=name, company=company, role=role, language=language)
+    subject = substitute_placeholders(subject, name=name, company=company, role=role, language=language)
     return GeneratedEmail(subject=subject, body=body, language=language)
 
 async def generate_email_from_template(
@@ -540,10 +549,124 @@ async def generate_email_from_template(
     forced_lang: Optional[str] = None,
     custom_instruction: str = ""
 ) -> GeneratedEmail:
-    """Adapts a user-provided template text to a specific contact using LLM (or offline fallback)."""
+    """Adapts a user-provided template text to a specific contact using LLM with strict 12s timeout and guaranteed substitution."""
     language = determine_language(contact, forced_lang)
     
     if not settings.api_key and settings.provider != "ollama":
+        return adapt_template_offline(template_text, contact, profile, language)
+        
+    system_prompt = build_template_adaptation_system_prompt()
+    user_prompt = build_template_adaptation_user_prompt(
+        template_text=template_text,
+        contact=contact,
+        profile=profile,
+        language=language,
+        custom_instruction=custom_instruction
+    )
+    
+    import asyncio
+    
+    async def _call_llm_worker():
+        if settings.provider == "gemini":
+            return await call_gemini_api(
+                api_key=settings.api_key,
+                model_name=settings.model_name or "gemini-3.5-flash",
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=settings.temperature
+            )
+        elif settings.provider == "openai":
+            base_url = settings.api_base_url or "https://api.openai.com/v1"
+            return await call_openai_compatible_api(
+                base_url=base_url,
+                api_key=settings.api_key,
+                model_name=settings.model_name or "gpt-4o-mini",
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=settings.temperature
+            )
+        elif settings.provider == "groq":
+            base_url = settings.api_base_url or "https://api.groq.com/openai/v1"
+            return await call_openai_compatible_api(
+                base_url=base_url,
+                api_key=settings.api_key,
+                model_name=settings.model_name or "llama-3.3-70b-versatile",
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=settings.temperature
+            )
+        elif settings.provider == "deepseek":
+            base_url = settings.api_base_url or "https://api.deepseek.com"
+            return await call_openai_compatible_api(
+                base_url=base_url,
+                api_key=settings.api_key,
+                model_name=settings.model_name or "deepseek-chat",
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=settings.temperature
+            )
+        elif settings.provider == "ollama":
+            base_url = settings.api_base_url or "http://localhost:11434/v1"
+            return await call_openai_compatible_api(
+                base_url=base_url,
+                api_key="ollama",
+                model_name=settings.model_name or "llama3.2",
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=settings.temperature
+            )
+        elif settings.provider == "openrouter":
+            base_url = settings.api_base_url or "https://openrouter.ai/api/v1"
+            return await call_openai_compatible_api(
+                base_url=base_url,
+                api_key=settings.api_key,
+                model_name=settings.model_name or "meta-llama/llama-3.3-70b-instruct",
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=settings.temperature
+            )
+        else:
+            raise ValueError(f"Unknown provider: {settings.provider}")
+
+    try:
+        # Strict 12s timeout to prevent freezing
+        raw_text = await asyncio.wait_for(_call_llm_worker(), timeout=12.0)
+            
+        parsed = clean_json_response(raw_text)
+        subject = parsed.get("subject", "").strip()
+        body = sanitize_email_body_for_deliverability(parsed.get("body_plain_text", parsed.get("body", "")).strip())
+        
+        comp_name = (contact.get("company") or contact.get("entreprise") or contact.get("societe") or "votre entreprise").strip()
+        bad_subject_triggers = [
+            "your work", "votre parcours", "your vision", "votre vision",
+            "student passionate", "passionné par", "passionate about",
+            "etudiant passionné", "étudiant passionné", "passionate student"
+        ]
+        if not subject or any(bad in subject.lower() for bad in bad_subject_triggers):
+            subject = f"Candidature Stage PFE – {comp_name} – Mohammed HSINY" if language == "fr" else f"Application – 6-Month Graduation Internship (PFE) – {comp_name} – Mohammed HSINY"
+            
+        if not body:
+            raise ValueError("Parsed JSON missing 'body_plain_text'")
+            
+        # GUARANTEED POST-SUBSTITUTION: Ensure no bracket survived LLM output
+        body = substitute_placeholders(
+            text=body,
+            name=contact.get("name", ""),
+            company=comp_name,
+            role=contact.get("role", ""),
+            language=language
+        )
+        subject = substitute_placeholders(
+            text=subject,
+            name=contact.get("name", ""),
+            company=comp_name,
+            role=contact.get("role", ""),
+            language=language
+        )
+            
+        return GeneratedEmail(subject=subject, body=body, language=language)
+    except Exception as e:
+        print(f"[LLM Template Warning] Adapting template failed/timed out for {contact.get('email')}: {e}. Using instant offline replacement.")
         return adapt_template_offline(template_text, contact, profile, language)
         
     system_prompt = build_template_adaptation_system_prompt()
@@ -622,7 +745,12 @@ async def generate_email_from_template(
         body = sanitize_email_body_for_deliverability(parsed.get("body_plain_text", parsed.get("body", "")).strip())
         
         comp_name = (contact.get("company") or contact.get("entreprise") or "votre entreprise").strip()
-        if not subject or any(bad in subject.lower() for bad in ["your work", "votre parcours", "your vision", "votre vision"]):
+        bad_subject_triggers = [
+            "your work", "votre parcours", "your vision", "votre vision",
+            "student passionate", "passionné par", "passionate about",
+            "etudiant passionné", "étudiant passionné", "passionate student"
+        ]
+        if not subject or any(bad in subject.lower() for bad in bad_subject_triggers):
             subject = f"Candidature Stage PFE – {comp_name} – Mohammed HSINY" if language == "fr" else f"Application – 6-Month Graduation Internship (PFE) – {comp_name} – Mohammed HSINY"
             
         if not body:

@@ -85,14 +85,19 @@ try:
     )
 except ImportError:
     def substitute_placeholders(text, name="", company="", role="", language="fr"):
-        n = name or ""
-        fn = n.split()[0] if n else ""
-        c = company or "votre entreprise"
-        import re
-        t = re.sub(r"\[(?:Prénom|Prenom)\]|\{\{?prenom\}?\}", fn, text, flags=re.I)
-        t = re.sub(r"\[(?:Nom)\]|\{\{?nom\}?\}", n, t, flags=re.I)
-        t = re.sub(r"\[(?:Entreprise|Société|Societe|Company)\]|\{\{?entreprise|company\}?\}", c, t, flags=re.I)
-        return t
+        try:
+            from services.prompt_builder import substitute_placeholders as _sp
+            return _sp(text, name=name, company=company, role=role, language=language)
+        except Exception:
+            c = company or "votre entreprise"
+            n = name or ""
+            fn = n.split()[0] if n else ""
+            import re
+            t = re.sub(r"\[\s*(?:nom\s+(?:de\s+l['’]?)?)?(?:entreprise|société|societe|company)\s*\]", c, text, flags=re.I)
+            t = re.sub(r"\{\{?(?:nom\s+(?:de\s+l['’]?)?)?(?:entreprise|société|societe|company)\}?\}", c, t, flags=re.I)
+            t = re.sub(r'\[\s*(?:prénom|prenom)\s*\]', fn if fn else "", t, flags=re.I)
+            t = re.sub(r'Bonjour\s+,', 'Bonjour,', t, flags=re.I)
+            return t
     THEMES_CATALOG = {
         "auto": {"label": "🎯 Auto-détection IA", "description": "Auto", "focus_fr": "génie électrique, contrôle commande, robotique", "focus_en": "electrical, control, robotics", "tagline_fr": "Élève-ingénieur", "tagline_en": "Engineering student"},
         "drones_robotics": {"label": "🛸 Focus Drones & Robotique", "description": "Drones", "focus_fr": "systèmes autonomes, ROS, vision", "focus_en": "autonomous systems, ROS", "tagline_fr": "Élève-ingénieur", "tagline_en": "Engineering student"},
@@ -1197,7 +1202,21 @@ with tab3:
 
     else:
         # Mode 2: Modèle / Template Sur-Mesure
-        with col_g2:
+        st.info("💡 **Mode Modèle / Template Actif :** Vos emails conserveront fidèlement votre texte en remplaçant automatiquement `[Entreprise]`, `[Prénom]`, etc. pour chaque destinataire.")
+        
+        col_m2_opt1, col_m2_opt2 = st.columns([1.8, 1.2])
+        with col_m2_opt1:
+            template_sub_mode = st.radio(
+                "⚡ Méthode d'application de votre modèle :",
+                [
+                    "⚡ Remplacement Direct & Instantané (Recommandé : 0 seconde d'attente, Zéro blocage, 100% Garanti)",
+                    "🤖 Adaptation & Contextualisation IA (L'IA contextualise les phrases selon l'activité de l'entreprise)"
+                ],
+                index=0,
+                key="studio_template_sub_mode",
+                help="Le mode Direct remplace instantanément [Entreprise] et vos balises sans appel API (idéal pour 50+ contacts sans jamais se bloquer)."
+            )
+        with col_m2_opt2:
             lang_mode = st.selectbox(
                 "Mode de Langue",
                 [
@@ -1371,6 +1390,13 @@ Mohammed HSINY
                 "country": "France"
             }
 
+        # Nettoyage automatique de consignes résiduelles (club/ex-président)
+        live_prompt_val = st.session_state.get("studio_live_prompt", "")
+        if any(term in live_prompt_val.lower() for term in ["robothings", "ex-président", "président de"]):
+            live_prompt_val = re.sub(r"et\s+mon\s+rôle\s+d['’]Ex-Président\s+de\s+RoboThings\.?", "et mon statut d'élève-ingénieur en dernière année.", live_prompt_val, flags=re.I)
+            live_prompt_val = re.sub(r"RoboThings", "Robotique", live_prompt_val, flags=re.I)
+            st.session_state["studio_live_prompt"] = live_prompt_val
+
         live_user_order = st.text_area(
             "Votre ordre ou consigne pour l'IA :",
             value=st.session_state.get("studio_live_prompt", "Essaie de faire un email orienté vers l'innovation mécatronique, en citant mon robot ASRS SkyPharma et mon statut d'élève-ingénieur en dernière année."),
@@ -1380,27 +1406,51 @@ Mohammed HSINY
         st.session_state["studio_live_prompt"] = live_user_order
 
         if st.button("🚀 Tester & Générer la Prévisualisation", type="secondary", key="btn_run_studio_test"):
-            with st.spinner("L'IA génère votre essai..."):
+            with st.spinner("Génération de l'essai en direct..."):
                 async def test_gen():
-                    return await generate_email_for_contact(
-                        contact=target_test_contact,
-                        profile=profile,
-                        settings=llm,
-                        forced_lang=forced_lang,
-                        theme=selected_theme_key if "Mode 1" in gen_mode else "auto",
-                        custom_instruction=live_user_order,
-                        tone=selected_style_key if "Mode 1" in gen_mode else "persuasive_tech"
-                    )
+                    if "Mode 2" in gen_mode:
+                        is_direct = "Direct" in st.session_state.get("studio_template_sub_mode", "Direct")
+                        if is_direct:
+                            return adapt_template_offline(
+                                template_text=custom_template_text,
+                                contact=target_test_contact,
+                                profile=profile,
+                                language=forced_lang or "fr"
+                            )
+                        else:
+                            return await generate_email_from_template(
+                                template_text=custom_template_text,
+                                contact=target_test_contact,
+                                profile=profile,
+                                settings=llm,
+                                forced_lang=forced_lang,
+                                custom_instruction=live_user_order
+                            )
+                    else:
+                        return await generate_email_for_contact(
+                            contact=target_test_contact,
+                            profile=profile,
+                            settings=llm,
+                            forced_lang=forced_lang,
+                            theme=selected_theme_key,
+                            custom_instruction=live_user_order,
+                            tone=selected_style_key
+                        )
                 try:
                     res_test = asyncio.run(test_gen())
                     chosen_mode = st.session_state.get("studio_subject_mode", subject_mode)
+                    bad_subj_words = [
+                        "your work", "votre parcours", "your vision", "votre vision",
+                        "student passionate", "passionné par", "passionate about",
+                        "etudiant passionné", "étudiant passionné", "passionate student"
+                    ]
                     if "Format d'Objet Fixe" in chosen_mode or "Fixe" in chosen_mode:
                         active_pattern = (
                             st.session_state.get("studio_fixed_subject_input") or
                             st.session_state.get("studio_fixed_subject") or
                             "Candidature Stage PFE – [Entreprise] – Mohammed HSINY"
                         ).strip()
-                        if any(b in active_pattern.lower() for b in ["your work", "votre parcours", "your vision", "votre vision"]):
+                        if any(b in active_pattern.lower() for b in bad_subj_words):
                             active_pattern = "Candidature Stage PFE – [Entreprise] – Mohammed HSINY"
                             st.session_state["studio_fixed_subject"] = active_pattern
                         final_subj = substitute_placeholders(
@@ -1413,7 +1463,7 @@ Mohammed HSINY
                     else:
                         final_subj = res_test.subject
 
-                    if not final_subj or any(b in final_subj.lower() for b in ["your work", "votre parcours", "your vision", "votre vision"]):
+                    if not final_subj or any(b in final_subj.lower() for b in bad_subj_words):
                         comp_clean = target_test_contact.get("company") or "[Entreprise]"
                         final_subj = f"Candidature Stage PFE – {comp_clean} – Mohammed HSINY" if res_test.language == "fr" else f"Internship Application (PFE) – {comp_clean} – Mohammed HSINY"
 
@@ -1483,14 +1533,23 @@ Mohammed HSINY
                                 tone=selected_style_key
                             )
                         else:
-                            res = await generate_email_from_template(
-                                template_text=custom_template_text,
-                                contact=contact,
-                                profile=profile,
-                                settings=llm,
-                                forced_lang=forced_lang,
-                                custom_instruction=effective_directive
-                            )
+                            is_direct_tpl = "Direct" in st.session_state.get("studio_template_sub_mode", "Direct")
+                            if is_direct_tpl:
+                                res = adapt_template_offline(
+                                    template_text=custom_template_text,
+                                    contact=contact,
+                                    profile=profile,
+                                    language=forced_lang or contact.get("language", "fr")
+                                )
+                            else:
+                                res = await generate_email_from_template(
+                                    template_text=custom_template_text,
+                                    contact=contact,
+                                    profile=profile,
+                                    settings=llm,
+                                    forced_lang=forced_lang,
+                                    custom_instruction=effective_directive
+                                )
 
                         # Apply Subject Guidance (100% strict & guaranteed)
                         active_subj_mode = st.session_state.get("studio_subject_mode", subject_mode)
@@ -1518,7 +1577,14 @@ Mohammed HSINY
                         if not contact.get("subject") or any(b in contact["subject"].lower() for b in ["your work", "votre parcours", "your vision", "votre vision"]):
                             comp_clean = contact.get("company") or contact.get("entreprise") or "[Entreprise]"
                             contact["subject"] = f"Candidature Stage PFE – {comp_clean} – Mohammed HSINY" if res.language == "fr" else f"Internship Application (PFE) – {comp_clean} – Mohammed HSINY"
-                        contact["body"] = res.body
+                        # Guaranteed final placeholder substitution on body
+                        contact["body"] = substitute_placeholders(
+                            text=res.body,
+                            name=contact.get("name", ""),
+                            company=contact.get("company", ""),
+                            role=contact.get("role", ""),
+                            language=res.language
+                        )
                         contact["language"] = res.language
                         contact["status"] = "generated"
                         save_or_update_contact(contact)
@@ -1576,7 +1642,7 @@ with tab_copilot:
         col_sug3, col_sug4 = st.columns(2)
         with col_sug3:
             if st.button("🛸 Focus Drones & ASRS", use_container_width=True, key="btn_sug_dron"):
-                st.session_state.copilot_pending_prompt = f"Rédige un email mettant en avant mon Drone Quadricoptère d'Inspection HT (YOLOv8, ArduPilot, carbone CNC) et mon Robot Cartésien ASRS SkyPharma de dispensation de médicaments, ainsi que mon rôle d'Ex-Président du Club RoboThings. {target_contact_info}"
+                st.session_state.copilot_pending_prompt = f"Rédige un email mettant en avant mon Drone Quadricoptère d'Inspection HT (YOLOv8, ArduPilot, carbone CNC) et mon Robot Cartésien ASRS SkyPharma de dispensation de médicaments, en valorisant mon statut d'élève-ingénieur en dernière année. {target_contact_info}"
         with col_sug4:
             if st.button("🔄 Effacer Historique", use_container_width=True, key="btn_sug_clr"):
                 st.session_state.copilot_messages = []
@@ -1589,7 +1655,7 @@ with tab_copilot:
         st.session_state.copilot_messages = [
             {
                 "role": "assistant",
-                "content": "Bonjour Mohammed ! ⚡ Je suis ton Copilote IA pour ta recherche de stage PFE (Dernière Année Génie Électrique & Contrôle Industriel à la FSTM).\n\nJe maîtrise l'intégralité de ton profil :\n- ☀️ **Centrale Solaire PV 1 MW** (calpinage, onduleurs, postes MT/BT, PVsyst)\n- 🛸 **Drone d'Inspection HT** (YOLOv8 vision IA, ArduPilot, carbone CNC)\n- 💊 **Robot ASRS SkyPharma** (cinématique cartésienne H-Bot, SQLite/Python)\n- 💧 **Projet Tawfir IoT** & Flotte Multi-Robots ADAS\n- 🏆 **Lauréat de 3 prix nationaux de robotique** (International Summer School, ENSA, EMI)\n- 🏭 Stages OCP (Poste MT/M580), PAYPER PROD, Marsa Maroc, Ciments du Maroc\n- 🌐 [Portfolio interactif en ligne](https://portfolio-mohammed-hsiny-ux7z.vercel.app/)\n\nSur quelle entreprise ou quel projet veux-tu que nous travaillions ?"
+                "content": "Bonjour Mohammed ! ⚡ Je suis ton Copilote IA pour ta recherche de stage PFE (Dernière Année Génie Électrique & Contrôle Industriel à la FSTM).\n\nJe maîtrise l'intégralité de ton profil :\n- ☀️ **Centrale Solaire PV 1 MW** (calpinage, onduleurs, postes MT/BT, PVsyst)\n- 🛸 **Drone d'Inspection HT** (YOLOv8 vision IA, ArduPilot, carbone CNC)\n- 💊 **Robot ASRS SkyPharma** (cinématique cartésienne H-Bot, SQLite/Python)\n- 💧 **Projet Tawfir IoT** & Flotte Multi-Robots ADAS\n- 🏆 **Lauréat de 3 prix nationaux de robotique** (International Summer School, ENSA, EMI)\n- 🏭 Stages OCP (Poste MT/M580), PAYPER PROD, Marsa Maroc, Ciments du Maroc\n- 📑 **Dossier technique et CV joints en pièces jointes PDF**\n\nSur quelle entreprise ou quel projet veux-tu que nous travaillions ?"
             }
         ]
 
