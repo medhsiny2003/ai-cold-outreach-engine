@@ -213,8 +213,6 @@ def generate_fallback_template(
         th_hr_en = "Embedded Systems & Drones"
         th_tag_en = "embedded systems, robotics and autonomous drones"
 
-    portfolio_url = profile.portfolio_url or "https://portfolio-mohammed-hsiny-ux7z.vercel.app/"
-    
     if language == "fr":
         salutation = f"Bonjour {first_name}," if first_name else "Bonjour,"
         
@@ -229,7 +227,7 @@ Je suis étudiant en dernière année d'ingénierie en Génie Électrique, passi
 
 Je suis très motivé par l'idée de rejoindre {company} et je suis sincèrement intéressé par vos projets innovants. L'expertise technique développée au sein de vos équipes représente pour moi un environnement idéal pour mon PFE.
 
-Je me permets de vous contacter pour bénéficier de votre regard sur mon CV et mon portfolio. Si vous avez un moment, je serais très reconnaissant d'avoir votre avis pour m'aider à progresser.
+Je me permets de vous contacter pour bénéficier de votre regard sur mon parcours et mes réalisations. Si vous avez un moment, je serais très reconnaissant d'avoir votre avis pour m'aider à progresser.
 
 Je me demande aussi s'il y aurait des opportunités de stage au sein de votre équipe ou dans vos services.
 
@@ -252,9 +250,7 @@ Je suis très motivé par l'idée de rejoindre {company} et je suis sincèrement
 
 Je me permets de vous contacter pour savoir s'il y aurait des opportunités de stage au sein de votre entreprise. Je suis disponible pour un PFE de 6 mois à partir de janvier 2027.
 
-Je vous joins mon CV et mon portfolio pour plus de détails.
-
-Mon CV ainsi que mon dossier de projets sont joints à ce message pour votre consultation.
+Mon CV ainsi que mon dossier de projets d'ingénierie sont joints à ce message pour votre consultation.
 
 Merci d'avance pour votre temps.
 
@@ -271,7 +267,7 @@ Je suis étudiant en dernière année d'ingénierie en Génie Électrique, passi
 
 En découvrant les activités de {company}, j'ai été particulièrement intéressé par vos défis techniques et vos projets d'ingénierie. Votre expertise dans le domaine est pour moi une source de motivation.
 
-Je me permets de vous contacter pour bénéficier de votre regard sur mon CV et mon portfolio. Si vous avez un moment, je serais très reconnaissant d'avoir votre avis pour m'aider à progresser.
+Je me permets de vous contacter pour bénéficier de votre regard technique sur mes projets. Si vous avez un moment, je serais très reconnaissant d'avoir votre retour pour m'aider à progresser.
 
 Je me demande aussi s'il y aurait des opportunités de stage au sein de votre équipe.
 
@@ -293,7 +289,7 @@ I am a final-year Electrical Engineering student, passionate about {th_tag_en}. 
 
 I am genuinely motivated by the prospect of contributing to {company} and deeply inspired by your leadership and vision.
 
-I would be very grateful for your insights and valuable feedback on my projects and online portfolio.
+I would be very grateful for your insights and valuable feedback on my projects and achievements.
 
 I was also wondering if there might be graduation internship opportunities within your teams.
 
@@ -311,8 +307,6 @@ I hope you are doing well.
 I am a final-year Electrical Engineering student, passionate about {th_tag_en}. I am based in Morocco and currently preparing my final graduation internship (PFE).
 
 I am very excited about {company}'s innovative projects and would love to explore internship opportunities within your organization for a 6-month period starting January 2027.
-
-I have attached my resume and portfolio dossier for your review.
 
 My resume and detailed project portfolio are attached to this email for your review.
 

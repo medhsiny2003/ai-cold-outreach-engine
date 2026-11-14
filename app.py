@@ -1256,6 +1256,12 @@ Mohammed HSINY
 Élève-Ingénieur FSTM | Génie Électrique & Contrôle Industriel
 +212 6 25 80 50 25"""
 
+        # Nettoyage automatique de liens web ou portfolio résiduels dans le modèle sauvegardé
+        active_tpl_val = st.session_state.get("custom_reference_template", default_custom_template)
+        if any(term in active_tpl_val.lower() for term in ["http", "vercel.app", "portfolio en ligne", "mon portfolio :", "portfolio :"]):
+            active_tpl_val = sanitize_email_body_for_deliverability(active_tpl_val)
+            st.session_state["custom_reference_template"] = active_tpl_val
+
         st.markdown("##### 📝 Votre Modèle d'Email de Référence")
         custom_template_text = st.text_area(
             "Rédigez ou collez votre email ici (l'IA s'occupe de contextualiser et d'adapter pour chaque entreprise) :",
@@ -1264,7 +1270,7 @@ Mohammed HSINY
             key="custom_template_input_area",
             help="Balises dynamiques : [Prénom], [Nom], [Entreprise], [Poste]. L'IA adaptera également les mentions de projets selon le domaine de la société !"
         )
-        st.session_state["custom_reference_template"] = custom_template_text
+        st.session_state["custom_reference_template"] = sanitize_email_body_for_deliverability(custom_template_text)
         st.caption("💡 **Balises automatiques** : `[Prénom]`, `[Nom]`, `[Entreprise]`, `[Poste]`. L'IA analyse l'activité réelle de l'entreprise pour contextualiser les phrases de votre texte.")
 
     st.divider()
@@ -1468,7 +1474,7 @@ Mohammed HSINY
                         final_subj = f"Candidature Stage PFE – {comp_clean} – Mohammed HSINY" if res_test.language == "fr" else f"Internship Application (PFE) – {comp_clean} – Mohammed HSINY"
 
                     st.session_state["studio_test_res_subject"] = final_subj
-                    st.session_state["studio_test_res_body"] = res_test.body
+                    st.session_state["studio_test_res_body"] = sanitize_email_body_for_deliverability(res_test.body)
                 except Exception as ex:
                     st.error(f"Erreur lors de l'essai : {ex}")
 
@@ -1578,13 +1584,14 @@ Mohammed HSINY
                             comp_clean = contact.get("company") or contact.get("entreprise") or "[Entreprise]"
                             contact["subject"] = f"Candidature Stage PFE – {comp_clean} – Mohammed HSINY" if res.language == "fr" else f"Internship Application (PFE) – {comp_clean} – Mohammed HSINY"
                         # Guaranteed final placeholder substitution on body
-                        contact["body"] = substitute_placeholders(
+                        substituted_body = substitute_placeholders(
                             text=res.body,
                             name=contact.get("name", ""),
                             company=contact.get("company", ""),
                             role=contact.get("role", ""),
                             language=res.language
                         )
+                        contact["body"] = sanitize_email_body_for_deliverability(substituted_body)
                         contact["language"] = res.language
                         contact["status"] = "generated"
                         save_or_update_contact(contact)
@@ -1980,12 +1987,12 @@ with tab4:
                                 custom_instruction=single_tmpl_note
                             )
                             current_contact["subject"] = res.subject
-                            current_contact["body"] = res.body
+                            current_contact["body"] = sanitize_email_body_for_deliverability(res.body)
                             current_contact["language"] = res.language
                             current_contact["status"] = "generated"
                             save_or_update_contact(current_contact)
                             st.session_state[f"subj_{current_contact['id']}"] = res.subject
-                            st.session_state[f"body_{current_contact['id']}"] = res.body
+                            st.session_state[f"body_{current_contact['id']}"] = current_contact["body"]
                             
                         asyncio.run(regen_tmpl_current())
                         st.session_state.selected_contact_id = current_contact['id']
@@ -1996,7 +2003,7 @@ with tab4:
                 st.markdown("### 📝 Contenu de l'Email Personnalisé")
                 
                 initial_subj = current_contact.get("subject", "")
-                initial_body = current_contact.get("body", "")
+                initial_body = sanitize_email_body_for_deliverability(current_contact.get("body", ""))
                 
                 edit_subject = st.text_input("Objet de l'email", value=initial_subj, key=f"subj_{current_contact['id']}")
                 edit_body = st.text_area("Corps du message", value=initial_body, height=350, key=f"body_{current_contact['id']}")
@@ -2015,14 +2022,14 @@ with tab4:
                 with c_save1:
                     if st.button("💾 Sauvegarder", use_container_width=True):
                         current_contact["subject"] = edit_subject
-                        current_contact["body"] = edit_body
+                        current_contact["body"] = sanitize_email_body_for_deliverability(edit_body)
                         save_or_update_contact(current_contact)
                         st.session_state.selected_contact_id = current_contact['id']
                         st.success("Modifications enregistrées !")
                 with c_save2:
                     if st.button("✅ Approuver", type="primary", use_container_width=True):
                         current_contact["subject"] = edit_subject
-                        current_contact["body"] = edit_body
+                        current_contact["body"] = sanitize_email_body_for_deliverability(edit_body)
                         current_contact["status"] = "approved"
                         save_or_update_contact(current_contact)
                         st.session_state.selected_contact_id = current_contact['id']

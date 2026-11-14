@@ -101,34 +101,50 @@ def substitute_placeholders(
     return result
 def sanitize_email_body_for_deliverability(text: str) -> str:
     """
-    Supprime tous les liens URL, liens Markdown et mentions de club/ex-présidence
+    Supprime tous les liens URL, liens Markdown, liens vers le portfolio et mentions de club/ex-présidence
     pour garantir une délivrabilité maximale (Zéro SPAM) et positionner Mohammed
     strictement comme élève-ingénieur en dernière année (Final-Year Engineering Student).
     """
     if not text:
         return ""
 
-    # Supprimer les lignes orphelines invitant au portfolio / lien
+    # 1. Traitement ligne par ligne : élimination de toute ligne qui mentionne le portfolio avec un lien ou invite de lien
     lines = text.split("\n")
     cleaned_lines = []
     for line in lines:
         stripped = line.strip()
-        if re.search(r'^(?:(?:vous\s+pouvez\s+)?(?:également\s+|aussi\s+)?(?:explorer|consulter|visiter|voir|retrouver)\s+(?:mon\s+)?(?:portfolio|site|lien|projets)[^:\n]*:?\s*)?(?:\[[^\]]*\]\([^\)]+\)|https?://\S+)?$', stripped, re.IGNORECASE) and ('http' in stripped or 'portfolio' in stripped.lower()):
+        # Si la ligne contient une URL ou un lien markdown lié au portfolio / site / projets
+        if re.search(r'https?://', stripped, re.I):
+            # Si la ligne entière sert à introduire le lien ou est un lien
+            if any(k in stripped.lower() for k in ["portfolio", "projet", "project", "lien", "link", "site", "consulter", "retrouver", "découvrir", "explorer", "explore", "view", "check"]):
+                continue
+            # Sinon supprimer l'URL de la ligne
+            stripped = re.sub(r'https?://\S+', '', stripped).strip()
+            if not stripped or stripped in [":", "-", "•", "–"]:
+                continue
+        # Si la ligne est un bouton ou lien markdown résiduel [Texte](URL)
+        if re.search(r'^\s*\[[^\]]+\]\([^\)]+\)\s*$', stripped):
             continue
-        if re.search(r'^(?:\[(?:Explorer|Explore|Consulter|Voir)[^\]]*\]\([^\)]+\)|https?://\S+)$', stripped, re.IGNORECASE):
+        # Si la ligne est un reliquat orphelin type 'Portfolio :', 'Mon portfolio :', 'Lien :'
+        if re.search(r'^(?:(?:mon\s+|notre\s+)?(?:portfolio|projets?|site\s+web|lien|link)|check\s+(?:out\s+)?(?:my\s+)?portfolio)\s*[:–-]?\s*$', stripped, re.I):
             continue
         cleaned_lines.append(line)
         
     text = "\n".join(cleaned_lines)
-    
-    # 1. Supprimer les boutons ou ancres de portfolio markdown restants
-    text = re.sub(r'\[(?:Explorer|Explore|Consulter|Voir)[^\]]*\]\([^\)]+\)', '', text, flags=re.IGNORECASE)
+
+    # 2. Supprimer les liens Markdown inline [Texte](URL)
+    text = re.sub(r'\[(?:Explorer|Explore|Consulter|Voir|Mon|My)?[^\]]*portfolio[^\]]*\]\([^\)]+\)', '', text, flags=re.I)
     text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
-    
-    # 2. Supprimer toute URL brute restante
-    text = re.sub(r'https?://[^\s<>"]+', '', text, flags=re.IGNORECASE)
-    
-    # 3. Supprimer toute mention de club ou d'ex-présidence
+
+    # 3. Supprimer toute URL brute restante
+    text = re.sub(r'https?://[^\s<>"]+', '', text, flags=re.I)
+
+    # 4. Supprimer phrases orphelines résiduelles comme 'disponible ici :'
+    text = re.sub(r'(?:disponible\s+ici|consulter\s+sur|accessible\s+sur|à\s+l[\'’]adresse|at)\s*[:.]?', '', text, flags=re.I)
+    text = re.sub(r'(?:mon\s+)?portfolio\s+(?:en\s+ligne|interactif|technique)\s*[:–-]?\s*', '', text, flags=re.I)
+    text = re.sub(r'(?:online|interactive)\s+portfolio\s*[:–-]?\s*', '', text, flags=re.I)
+
+    # 5. Supprimer toute mention de club ou d'ex-présidence
     text = re.sub(r'(?:ex-)?président\s+(?:et\s+team\s+leader\s+)?du\s+club\s+(?:robotique\s+)?robothings[^\n,.]*', 'élève-ingénieur en dernière année', text, flags=re.IGNORECASE)
     text = re.sub(r'(?:ex-)?president\s+(?:and\s+team\s+leader\s+)?of\s+(?:the\s+)?(?:robotics\s+club\s+)?robothings[^\n,.]*', 'final-year engineering student', text, flags=re.IGNORECASE)
     text = re.sub(r'\b(?:ex-)?président\s+du\s+club\b', 'élève-ingénieur en dernière année', text, flags=re.IGNORECASE)
@@ -137,11 +153,13 @@ def sanitize_email_body_for_deliverability(text: str) -> str:
     text = re.sub(r'(?:en\s+tant\s+qu\'?|mon\s+rôle\s+d\'?)ex-?président[^\n,.]*', "élève-ingénieur en dernière année", text, flags=re.IGNORECASE)
     text = re.sub(r'(?:as\s+)?(?:ex-)?president\s+of[^\n,.]*', "final-year engineering student", text, flags=re.IGNORECASE)
 
-    # 4. Nettoyer les lignes blanches consécutives
+    # 6. Nettoyer les lignes blanches consécutives et reliquats
     final_lines = []
     prev_empty = False
     for l in text.split("\n"):
         s = l.strip()
+        if s in [":", "-", "•", "–", ".", ".."]:
+            continue
         if not s:
             if not prev_empty:
                 final_lines.append("")
